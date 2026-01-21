@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { getDefaultPrompts } = require('./prompts');
 
 const STORE_PATH = path.join(__dirname, '..', 'data', 'store.json');
 const ENCODING = 'utf-8';
@@ -29,9 +30,37 @@ function generateId(prefix = 'id') {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
 }
 
+function applyPromptDefaults(topic) {
+  const defaults = getDefaultPrompts();
+  const prompts = {
+    ...defaults,
+    ...(topic.prompts || {}),
+  };
+  return { ...topic, prompts };
+}
+
+function normalizeTopics(store) {
+  let changed = false;
+  const topics = store.topics.map((topic) => {
+    const normalized = applyPromptDefaults(topic);
+    if (
+      normalized.prompts.system !== topic.prompts?.system ||
+      normalized.prompts.user !== topic.prompts?.user
+    ) {
+      changed = true;
+    }
+    return normalized;
+  });
+  if (changed) {
+    store.topics = topics;
+    writeStore(store);
+  }
+  return topics;
+}
+
 function getTopics() {
   const store = readStore();
-  return store.topics;
+  return normalizeTopics(store);
 }
 
 function getTopic(id) {
@@ -44,9 +73,11 @@ function addTopic(name) {
     throw new Error('Topic name is required');
   }
   const store = readStore();
+  const prompts = getDefaultPrompts();
   const topic = {
     id: generateId('topic'),
     name: trimmed,
+    prompts,
     createdAt: new Date().toISOString(),
   };
   store.topics.push(topic);
@@ -71,6 +102,35 @@ function addPosts(topicId, texts) {
 function getPostsForTopic(topicId) {
   const store = readStore();
   return store.posts.filter((p) => p.topicId === topicId);
+}
+
+function updateTopic(topicId, updates = {}) {
+  const store = readStore();
+  const index = store.topics.findIndex((t) => t.id === topicId);
+  if (index === -1) {
+    return null;
+  }
+  const topic = store.topics[index];
+  if (typeof updates.name === 'string') {
+    const trimmed = updates.name.trim();
+    if (!trimmed) {
+      throw new Error('Topic name is required');
+    }
+    topic.name = trimmed;
+  }
+  if (updates.prompts) {
+    const defaults = getDefaultPrompts();
+    const nextPrompts = {
+      ...defaults,
+      ...updates.prompts,
+    };
+    topic.prompts = nextPrompts;
+  } else if (!topic.prompts) {
+    topic.prompts = getDefaultPrompts();
+  }
+  store.topics[index] = topic;
+  writeStore(store);
+  return applyPromptDefaults(topic);
 }
 
 function deleteTopic(topicId) {
@@ -98,12 +158,29 @@ function deletePost(postId) {
   return removed;
 }
 
+function updatePost(postId, text) {
+  const trimmed = text?.trim();
+  if (!trimmed) {
+    throw new Error('Post text is required');
+  }
+  const store = readStore();
+  const index = store.posts.findIndex((p) => p.id === postId);
+  if (index === -1) {
+    return null;
+  }
+  store.posts[index].text = trimmed;
+  writeStore(store);
+  return store.posts[index];
+}
+
 module.exports = {
   getTopics,
   getTopic,
   addTopic,
   addPosts,
   getPostsForTopic,
+  updateTopic,
   deletePost,
+  updatePost,
   deleteTopic,
 };

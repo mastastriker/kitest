@@ -74,15 +74,22 @@ label {
 }
 
 input,
-button {
+button,
+textarea {
   font: inherit;
 }
 
-input {
+input,
+textarea {
   padding: 10px 12px;
   border-radius: 8px;
   border: 1px solid var(--border);
   background: #fdfdfd;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 84px;
 }
 
 button {
@@ -129,6 +136,16 @@ button:disabled {
   gap: 12px;
 }
 
+.topic-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.inline-field {
+  font-weight: 600;
+}
+
 .topic-actions {
   display: flex;
   gap: 8px;
@@ -138,6 +155,25 @@ button:disabled {
 
 .topic-name {
   font-weight: 700;
+}
+
+.topic-prompts {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.prompt-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.prompt-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .posts {
@@ -162,6 +198,10 @@ button:disabled {
   flex: 1;
 }
 
+.post-input {
+  width: 100%;
+}
+
 .post-actions {
   display: flex;
   gap: 8px;
@@ -169,6 +209,10 @@ button:disabled {
 
 .muted {
   color: var(--muted);
+}
+
+.muted.small {
+  font-size: 12px;
 }
 
 button.ghost {
