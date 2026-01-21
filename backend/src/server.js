@@ -13,10 +13,11 @@ const { generatePostsForTopic } = require('./chatgpt');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const FRONTEND_DIR = path.join(__dirname, '..', '..', 'frontend');
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '..', 'public')));
+app.use(express.static(FRONTEND_DIR));
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
@@ -69,6 +70,11 @@ app.get('/api/posts', (req, res) => {
     getPostsForTopic(topic.id).map((p) => ({ ...p, topicName: topic.name }))
   );
   res.json({ posts: allPosts });
+});
+
+// Serve frontend index for root (keeps API 404 JSON for other unknown routes)
+app.get('/', (req, res) => {
+  res.sendFile(path.join(FRONTEND_DIR, 'index.html'));
 });
 
 app.use((req, res) => {
