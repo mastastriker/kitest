@@ -2,10 +2,10 @@
   "name": "kitest",
   "version": "0.1.0",
   "description": "MVP for AI-assisted X post generation",
-  "main": "src/server.js",
+  "main": "backend/src/server.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "node src/server.js"
+    "start": "node backend/src/server.js",
+    "dev": "node backend/src/server.js"
   },
   "repository": {
     "type": "git",
