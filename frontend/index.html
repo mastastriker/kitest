@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KI X-Post Generator</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header>
+        <h1>KI X-Post Generator</h1>
+        <p class="lede">Definiere Themen, generiere Beiträge, behalte den Überblick.</p>
+      </header>
+
+      <section class="panel">
+        <h2>Neues Thema</h2>
+        <form id="topic-form" class="stack">
+          <label>
+            Titel
+            <input type="text" id="topic-name" placeholder="z. B. Produktivität, AI News" required />
+          </label>
+          <button type="submit">Thema anlegen</button>
+        </form>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Themen & Beiträge</h2>
+          <button id="refresh-topics" type="button">Aktualisieren</button>
+        </div>
+        <div id="topics" class="topics"></div>
+      </section>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>

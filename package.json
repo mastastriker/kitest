@@ -1,0 +1,28 @@
+{
+  "name": "kitest",
+  "version": "0.1.0",
+  "description": "MVP for AI-assisted X post generation",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mastastriker/kitest.git"
+  },
+  "keywords": [],
+  "author": "mastastriker",
+  "license": "MIT",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/mastastriker/kitest/issues"
+  },
+  "homepage": "https://github.com/mastastriker/kitest#readme",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "openai": "^6.16.0"
+  }
+}
