@@ -139,7 +139,6 @@ function renderTopic(topic) {
     <div class="topic-header">
       <div>
         <div class="topic-name">${topic.name}</div>
-        <div class="muted">ID: ${topic.id}</div>
       </div>
       <div class="topic-actions">
         <button type="button" class="ghost danger" data-action="delete">Thema löschen</button>
