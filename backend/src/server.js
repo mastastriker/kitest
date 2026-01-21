@@ -56,7 +56,7 @@ app.post('/api/topics/:id/generate', async (req, res) => {
   if (!topic) {
     return res.status(404).json({ error: 'topic not found' });
   }
-  const count = Number(req.body?.count) || 3;
+  const count = 1;
   try {
     const generated = await generatePostsForTopic(topic, count);
     const saved = addPosts(topic.id, generated);
