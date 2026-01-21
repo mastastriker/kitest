@@ -73,10 +73,37 @@ function getPostsForTopic(topicId) {
   return store.posts.filter((p) => p.topicId === topicId);
 }
 
+function deleteTopic(topicId) {
+  const store = readStore();
+  const index = store.topics.findIndex((t) => t.id === topicId);
+  if (index === -1) {
+    return null;
+  }
+  const [removedTopic] = store.topics.splice(index, 1);
+  const before = store.posts.length;
+  store.posts = store.posts.filter((p) => p.topicId !== topicId);
+  const removedPosts = before - store.posts.length;
+  writeStore(store);
+  return { topic: removedTopic, removedPosts };
+}
+
+function deletePost(postId) {
+  const store = readStore();
+  const index = store.posts.findIndex((p) => p.id === postId);
+  if (index === -1) {
+    return null;
+  }
+  const [removed] = store.posts.splice(index, 1);
+  writeStore(store);
+  return removed;
+}
+
 module.exports = {
   getTopics,
   getTopic,
   addTopic,
   addPosts,
   getPostsForTopic,
+  deletePost,
+  deleteTopic,
 };

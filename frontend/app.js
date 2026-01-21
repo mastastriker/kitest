@@ -8,6 +8,32 @@ const state = {
   posts: {}, // topicId -> posts[]
 };
 
+async function deleteTopic(topicId, button) {
+  if (!topicId) return;
+  if (!window.confirm('Thema wirklich löschen? Alle Beiträge dazu werden entfernt.')) {
+    return;
+  }
+  button.disabled = true;
+  try {
+    const res = await fetch(`/api/topics/${topicId}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Löschen fehlgeschlagen');
+    }
+    state.topics = state.topics.filter((t) => t.id !== topicId);
+    delete state.posts[topicId];
+    const card = document.querySelector(`[data-topic="${topicId}"]`);
+    if (card) card.remove();
+    if (!state.topics.length) {
+      topicsContainer.innerHTML = '<p class="muted">Noch keine Themen angelegt.</p>';
+    }
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    button.disabled = false;
+  }
+}
+
 topicForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const name = topicNameInput.value.trim();
@@ -87,22 +113,46 @@ async function generatePosts(topicId, button) {
   }
 }
 
+async function deletePost(topicId, postId, button) {
+  if (!postId) return;
+  button.disabled = true;
+  try {
+    const res = await fetch(`/api/posts/${postId}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Löschen fehlgeschlagen');
+    }
+    state.posts[topicId] = (state.posts[topicId] || []).filter((p) => p.id !== postId);
+    renderPosts(topicId);
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    button.disabled = false;
+  }
+}
+
 function renderTopic(topic) {
   const card = document.createElement('article');
   card.className = 'topic-card';
+  card.dataset.topic = topic.id;
   card.innerHTML = `
     <div class="topic-header">
       <div>
         <div class="topic-name">${topic.name}</div>
         <div class="muted">ID: ${topic.id}</div>
       </div>
-      <button type="button">Beiträge generieren</button>
+      <div class="topic-actions">
+        <button type="button" class="ghost danger" data-action="delete">Thema löschen</button>
+        <button type="button" data-action="generate">Beiträge generieren</button>
+      </div>
     </div>
     <div class="posts" data-posts="${topic.id}"></div>
   `;
 
-  const generateButton = card.querySelector('button');
+  const generateButton = card.querySelector('button[data-action="generate"]');
+  const deleteButton = card.querySelector('button[data-action="delete"]');
   generateButton.addEventListener('click', () => generatePosts(topic.id, generateButton));
+  deleteButton.addEventListener('click', () => deleteTopic(topic.id, deleteButton));
   topicsContainer.appendChild(card);
 }
 
@@ -118,7 +168,24 @@ function renderPosts(topicId) {
   posts.forEach((post) => {
     const div = document.createElement('div');
     div.className = 'post';
-    div.textContent = post.text || post;
+
+    const text = document.createElement('div');
+    text.className = 'post-text';
+    text.textContent = post.text || post;
+    div.appendChild(text);
+
+    if (post.id) {
+      const actions = document.createElement('div');
+      actions.className = 'post-actions';
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'ghost danger';
+      delBtn.textContent = 'Löschen';
+      delBtn.addEventListener('click', () => deletePost(topicId, post.id, delBtn));
+      actions.appendChild(delBtn);
+      div.appendChild(actions);
+    }
+
     container.appendChild(div);
   });
 }

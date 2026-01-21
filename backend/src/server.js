@@ -8,6 +8,8 @@ const {
   addTopic,
   addPosts,
   getPostsForTopic,
+  deletePost,
+  deleteTopic,
 } = require('./store');
 const { generatePostsForTopic } = require('./chatgpt');
 
@@ -70,6 +72,22 @@ app.get('/api/posts', (req, res) => {
     getPostsForTopic(topic.id).map((p) => ({ ...p, topicName: topic.name }))
   );
   res.json({ posts: allPosts });
+});
+
+app.delete('/api/posts/:id', (req, res) => {
+  const removed = deletePost(req.params.id);
+  if (!removed) {
+    return res.status(404).json({ error: 'post not found' });
+  }
+  return res.json({ post: removed });
+});
+
+app.delete('/api/topics/:id', (req, res) => {
+  const removed = deleteTopic(req.params.id);
+  if (!removed) {
+    return res.status(404).json({ error: 'topic not found' });
+  }
+  return res.json({ topic: removed.topic, removedPosts: removed.removedPosts });
 });
 
 // Serve frontend index for root (keeps API 404 JSON for other unknown routes)

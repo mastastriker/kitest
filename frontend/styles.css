@@ -129,6 +129,13 @@ button:disabled {
   gap: 12px;
 }
 
+.topic-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .topic-name {
   font-weight: 700;
 }
@@ -145,15 +152,44 @@ button:disabled {
   border-radius: 8px;
   padding: 10px;
   line-height: 1.5;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.post-text {
+  flex: 1;
+}
+
+.post-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .muted {
   color: var(--muted);
 }
 
+button.ghost {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  box-shadow: none;
+}
+
+button.ghost.danger {
+  color: #b42318;
+  border-color: #b42318;
+}
+
 @media (max-width: 640px) {
   .topic-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+  .topic-actions {
+    width: 100%;
+    justify-content: flex-start;
   }
 }

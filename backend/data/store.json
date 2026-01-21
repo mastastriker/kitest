@@ -1,58 +1,15 @@
 {
   "topics": [
     {
-      "id": "topic_mkomrp49_3qhy",
-      "name": "test",
-      "createdAt": "2026-01-21T23:04:48.873Z"
+      "id": "topic_mkonr8gk_j8fi",
+      "name": "Crypto/Defi",
+      "createdAt": "2026-01-21T23:32:26.900Z"
     },
     {
-      "id": "topic_mkomru1q_vj54",
-      "name": "sex",
-      "createdAt": "2026-01-21T23:04:55.262Z"
+      "id": "topic_mkonrgzz_d8ss",
+      "name": "Camping",
+      "createdAt": "2026-01-21T23:32:37.967Z"
     }
   ],
-  "posts": [
-    {
-      "id": "post_mkomrz07_znas",
-      "topicId": "topic_mkomrp49_3qhy",
-      "text": "Thought on test: here is a quick takeaway — keep it sharp and actionable.",
-      "createdAt": "2026-01-21T23:05:01.687Z",
-      "source": "openai"
-    },
-    {
-      "id": "post_mkomrz07_u79g",
-      "topicId": "topic_mkomrp49_3qhy",
-      "text": "Thought on test: a small shift changes everything — keep it sharp and actionable.",
-      "createdAt": "2026-01-21T23:05:01.687Z",
-      "source": "openai"
-    },
-    {
-      "id": "post_mkomrz07_mlau",
-      "topicId": "topic_mkomrp49_3qhy",
-      "text": "Thought on test: people overlook the simple parts — keep it sharp and actionable.",
-      "createdAt": "2026-01-21T23:05:01.687Z",
-      "source": "openai"
-    },
-    {
-      "id": "post_mkoms29n_84ux",
-      "topicId": "topic_mkomru1q_vj54",
-      "text": "Thought on sex: here is a quick takeaway — keep it sharp and actionable.",
-      "createdAt": "2026-01-21T23:05:05.915Z",
-      "source": "openai"
-    },
-    {
-      "id": "post_mkoms29n_e8kq",
-      "topicId": "topic_mkomru1q_vj54",
-      "text": "Thought on sex: a small shift changes everything — keep it sharp and actionable.",
-      "createdAt": "2026-01-21T23:05:05.915Z",
-      "source": "openai"
-    },
-    {
-      "id": "post_mkoms29n_q48a",
-      "topicId": "topic_mkomru1q_vj54",
-      "text": "Thought on sex: people overlook the simple parts — keep it sharp and actionable.",
-      "createdAt": "2026-01-21T23:05:05.915Z",
-      "source": "openai"
-    }
-  ]
+  "posts": []
 }

@@ -14,16 +14,15 @@ async function generatePostsForTopic(topic, count = 3) {
   }
 
   const system = [
-    'You create concise, engaging Twitter/X posts.',
-    'Keep posts under 260 characters.',
-    'Avoid emojis and hashtags unless essential.',
-    'Return JSON: {"posts":[{"text":"..."}]} with no extra text.',
+    'Du schreibst prägnante, ansprechende X/Twitter-Posts auf Deutsch.',
+    'Maximal 260 Zeichen, keine Emojis oder Hashtags außer wenn wirklich nötig.',
+    'Liefere nur JSON: {"posts":[{"text":"..."}]} ohne zusätzlichen Text.',
   ].join(' ');
 
   const user = [
-    `Topic: ${topic.name}`,
-    `Generate ${count} distinct posts.`,
-    'Each post should be self-contained and ready to publish.',
+    `Thema: ${topic.name}`,
+    `Erzeuge ${count} unterschiedliche Posts.`,
+    'Jeder Post soll selbsterklärend und direkt postbar sein.',
   ].join('\n');
 
   const response = await client.chat.completions.create({
@@ -61,18 +60,18 @@ function buildFallback(topicName, count) {
   const variations = [];
   for (let i = 0; i < count; i += 1) {
     variations.push(
-      `Thought on ${topicName}: ${sampleHooks[i % sampleHooks.length]} — keep it sharp and actionable.`
+      `Gedanke zu ${topicName}: ${sampleHooks[i % sampleHooks.length]} — kurz, konkret, umsetzbar.`
     );
   }
   return variations;
 }
 
 const sampleHooks = [
-  'here is a quick takeaway',
-  'a small shift changes everything',
-  'people overlook the simple parts',
-  'try this once and see the impact',
-  'cut the fluff and focus on what moves the needle',
+  'hier ein schneller Denkanstoß',
+  'kleiner Hebel, große Wirkung',
+  'oft übersehen wir das Einfache',
+  'probier es einmal und sieh den Effekt',
+  'streiche das Überflüssige und fokussiere aufs Wirksame',
 ];
 
 module.exports = {
