@@ -97,7 +97,7 @@ async function generatePosts(topicId, button) {
     const res = await fetch(`/api/topics/${topicId}/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ count: 3 }),
+      body: JSON.stringify({ count: 1 }),
     });
     const data = await res.json();
     if (!res.ok) {
