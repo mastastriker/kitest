@@ -17,21 +17,44 @@
         "system": "Du schreibst prägnante, ansprechende X/Twitter-Posts auf Deutsch. Maximal 260 Zeichen, keine Emojis oder Hashtags außer wenn wirklich nötig. Liefere nur JSON: {\"posts\":[{\"text\":\"...\"}]} ohne zusätzlichen Text.",
         "user": "Thema: {{topic}}\nErzeuge {{count}} unterschiedliche Posts.\nJeder Post soll selbsterklärend und direkt postbar sein."
       }
+    },
+    {
+      "id": "topic_mkq0bj7b_s75e",
+      "name": "Männer",
+      "prompts": {
+        "system": "Du schreibst prägnante, ansprechende X/Twitter-Posts auf Deutsch. Maximal 260 Zeichen, keine Emojis oder Hashtags außer wenn wirklich nötig. Liefere nur JSON: {\"posts\":[{\"text\":\"...\"}]} ohne zusätzlichen Text.",
+        "user": "Thema: {{topic}}\nErzeuge {{count}} unterschiedliche Posts.\nJeder Post soll selbsterklärend und direkt postbar sein."
+      },
+      "createdAt": "2026-01-22T22:11:55.512Z"
     }
   ],
   "posts": [
     {
-      "id": "post_mkonvq1p_0t3h",
+      "id": "post_mkq04t88_kqr3",
       "topicId": "topic_mkonr8gk_j8fi",
-      "text": "Liquiditätspools und Yield Farming sind spannende Möglichkeiten im DeFi-Bereich. Sie ermöglichen dir, passives Einkommen zu generieren, aber sei dir der Risiken bewusst. Diversifizierung ist der Schlüssel!!",
-      "createdAt": "2026-01-21T23:35:56.317Z",
+      "text": "Die DeFi-Revolution verändert die Finanzwelt, indem sie jedem den Zugang zu Krediten, Ersparnissen und Investitionen ermöglicht. Schluss mit den Banken! Setze auf Transparenz, Sicherheit und Kontrolle über dein Geld. Bist du bereit für den Wandel?",
+      "createdAt": "2026-01-22T22:06:41.912Z",
       "source": "openai"
     },
     {
-      "id": "post_mkoo4fzz_i481",
+      "id": "post_mkq04wcz_now9",
+      "topicId": "topic_mkonr8gk_j8fi",
+      "text": "Die DeFi-Welt verändert die Finanzlandschaft. Schnelle Transaktionen, keine Mittelsmänner und Zugang für alle. Ist das die Zukunft des Geldes? Diskutiere mit uns!",
+      "createdAt": "2026-01-22T22:06:45.971Z",
+      "source": "openai"
+    },
+    {
+      "id": "post_mkq04zuy_7p8m",
       "topicId": "topic_mkonrgzz_d8ss",
-      "text": "Camping unter dem Sternenhimmel ist das beste Gegenmittel gegen den Alltagsstress. Die Natur umarmen, am Lagerfeuer Geschichten erzählen und den Tag mit einem Sonnenuntergang beenden – so erholt man sich richtig!",
-      "createdAt": "2026-01-21T23:42:43.199Z",
+      "text": "Camping unter dem Sternenhimmel ist die perfekte Auszeit vom Alltag. Keine Technik, nur die Natur und das Knistern des Lagerfeuers. Was ist euer Lieblingsplatz zum Campen?",
+      "createdAt": "2026-01-22T22:06:50.506Z",
+      "source": "openai"
+    },
+    {
+      "id": "post_mkq0bn3p_454k",
+      "topicId": "topic_mkq0bj7b_s75e",
+      "text": "Männer sind vielschichtig. Sie sind nicht nur stark und unabhängig, sondern auch sensibel und verletzlich. Es ist wichtig, diese Facetten zu erkennen und anzunehmen. Stärke zeigt sich oft in der Bereitschaft, Gefühle zu zeigen.",
+      "createdAt": "2026-01-22T22:12:00.565Z",
       "source": "openai"
     }
   ]
