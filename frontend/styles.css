@@ -216,6 +216,44 @@ button:disabled {
   gap: 8px;
 }
 
+.topic-properties {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.properties-head {
+  font-weight: 700;
+}
+
+.properties-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.property-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+}
+
+.property-item input {
+  margin: 0;
+}
+
+.properties-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .prompt-grid {
   display: grid;
   gap: 10px;
