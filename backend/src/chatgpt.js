@@ -1,7 +1,6 @@
 const OpenAI = require('openai');
 const { getDefaultPrompts, renderUserPrompt } = require('./prompts');
 const { getPostPropertyMap } = require('./postProperties');
-const { fetchNewsFromFeed, renderNewsContext } = require('./news');
 
 const apiKey = process.env.OPENAI_API_KEY;
 const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
@@ -20,13 +19,7 @@ async function generatePostsForTopic(topic, count = 3) {
   const system = topic.prompts?.system || defaults.system;
   const baseUser = renderUserPrompt(topic.prompts?.user || defaults.user, topic.name, count);
   const selectedProperties = selectPostProperties(topic);
-  let user = appendPropertyInstructions(baseUser, selectedProperties);
-  try {
-    const items = await fetchNewsFromFeed(topic.newsFeedUrl);
-    user = `${user}${renderNewsContext(items)}`;
-  } catch (err) {
-    // Ignore feed errors and continue with the base prompt.
-  }
+  const user = appendPropertyInstructions(baseUser, selectedProperties);
 
   const response = await client.chat.completions.create({
     model,
