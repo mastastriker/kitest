@@ -3,19 +3,27 @@
     {
       "id": "topic_mkonr8gk_j8fi",
       "name": "Crypto/Defi",
-      "createdAt": "2026-01-21T23:32:26.900Z"
+      "createdAt": "2026-01-21T23:32:26.900Z",
+      "prompts": {
+        "system": "Du schreibst prägnante, ansprechende X/Twitter-Posts auf Deutsch. Maximal 260 Zeichen, keine Emojis oder Hashtags außer wenn wirklich nötig. Liefere nur JSON: {\"posts\":[{\"text\":\"...\"}]} ohne zusätzlichen Text.",
+        "user": "Thema: {{topic}}\nErzeuge {{count}} unterschiedliche Posts.\nJeder Post soll selbsterklärend und direkt postbar sein."
+      }
     },
     {
       "id": "topic_mkonrgzz_d8ss",
       "name": "Camping",
-      "createdAt": "2026-01-21T23:32:37.967Z"
+      "createdAt": "2026-01-21T23:32:37.967Z",
+      "prompts": {
+        "system": "Du schreibst prägnante, ansprechende X/Twitter-Posts auf Deutsch. Maximal 260 Zeichen, keine Emojis oder Hashtags außer wenn wirklich nötig. Liefere nur JSON: {\"posts\":[{\"text\":\"...\"}]} ohne zusätzlichen Text.",
+        "user": "Thema: {{topic}}\nErzeuge {{count}} unterschiedliche Posts.\nJeder Post soll selbsterklärend und direkt postbar sein."
+      }
     }
   ],
   "posts": [
     {
       "id": "post_mkonvq1p_0t3h",
       "topicId": "topic_mkonr8gk_j8fi",
-      "text": "Liquiditätspools und Yield Farming sind spannende Möglichkeiten im DeFi-Bereich. Sie ermöglichen dir, passives Einkommen zu generieren, aber sei dir der Risiken bewusst. Diversifizierung ist der Schlüssel!",
+      "text": "Liquiditätspools und Yield Farming sind spannende Möglichkeiten im DeFi-Bereich. Sie ermöglichen dir, passives Einkommen zu generieren, aber sei dir der Risiken bewusst. Diversifizierung ist der Schlüssel!!",
       "createdAt": "2026-01-21T23:35:56.317Z",
       "source": "openai"
     },
