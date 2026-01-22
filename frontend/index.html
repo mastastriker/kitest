@@ -8,6 +8,13 @@
   </head>
   <body>
     <main class="page">
+      <div class="theme-toggle">
+        <span>Dark Mode</span>
+        <label class="switch">
+          <input id="theme-toggle" type="checkbox" />
+          <span class="slider"></span>
+        </label>
+      </div>
       <header>
         <h1>KI X-Post Generator v8</h1>
         <p class="lede">Übersicht aller erstellten Beiträge.</p>
@@ -32,6 +39,7 @@
         <div id="posts" class="posts-overview"></div>
       </section>
     </main>
+    <script src="theme.js"></script>
     <script src="posts.js"></script>
   </body>
 </html>
