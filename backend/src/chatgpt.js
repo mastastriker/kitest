@@ -1,5 +1,7 @@
 const OpenAI = require('openai');
 const { getDefaultPrompts, renderUserPrompt } = require('./prompts');
+const { getPostPropertyMap } = require('./postProperties');
+const { fetchNewsFromFeed, renderNewsContext } = require('./news');
 
 const apiKey = process.env.OPENAI_API_KEY;
 const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
@@ -16,7 +18,15 @@ async function generatePostsForTopic(topic, count = 3) {
 
   const defaults = getDefaultPrompts();
   const system = topic.prompts?.system || defaults.system;
-  const user = renderUserPrompt(topic.prompts?.user || defaults.user, topic.name, count);
+  const baseUser = renderUserPrompt(topic.prompts?.user || defaults.user, topic.name, count);
+  const selectedProperties = selectPostProperties(topic);
+  let user = appendPropertyInstructions(baseUser, selectedProperties);
+  try {
+    const items = await fetchNewsFromFeed(topic.newsFeedUrl);
+    user = `${user}${renderNewsContext(items)}`;
+  } catch (err) {
+    // Ignore feed errors and continue with the base prompt.
+  }
 
   const response = await client.chat.completions.create({
     model,
@@ -34,6 +44,58 @@ async function generatePostsForTopic(topic, count = 3) {
     return buildFallback(topic.name, count);
   }
   return parsed;
+}
+
+function appendPropertyInstructions(userPrompt, selectedProperties) {
+  if (!selectedProperties.length) {
+    return userPrompt;
+  }
+  const propertyMap = getPostPropertyMap();
+  const lines = selectedProperties
+    .map((id) => propertyMap[id]?.prompt)
+    .filter(Boolean)
+    .map((prompt) => `- ${prompt}`);
+  if (!lines.length) {
+    return userPrompt;
+  }
+  return `${userPrompt}\n\nZusätzliche Eigenschaften für diesen Post:\n${lines.join('\n')}`;
+}
+
+function selectPostProperties(topic, maxSelection = 3) {
+  const active = Array.isArray(topic?.postProperties) ? topic.postProperties : [];
+  if (!active.length) {
+    return [];
+  }
+  const propertyMap = getPostPropertyMap();
+  const candidates = active.filter((id) => propertyMap[id]);
+  if (candidates.length <= maxSelection) {
+    return candidates;
+  }
+  const shuffled = shuffle(candidates);
+  const selected = [];
+  shuffled.forEach((id) => {
+    if (selected.length >= maxSelection) {
+      return;
+    }
+    const conflicts = new Set(propertyMap[id]?.conflicts || []);
+    const isConflicting = selected.some((picked) => {
+      const pickedConflicts = propertyMap[picked]?.conflicts || [];
+      return conflicts.has(picked) || pickedConflicts.includes(id);
+    });
+    if (!isConflicting) {
+      selected.push(id);
+    }
+  });
+  return selected;
+}
+
+function shuffle(items) {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
 }
 
 function safeParsePosts(payload) {
