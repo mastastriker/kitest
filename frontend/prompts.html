@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Themen &amp; Prompts verwalten</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header>
+        <h1>Themen &amp; Prompts</h1>
+        <p class="lede">Themen verwalten und Prompt-Templates pro Thema bearbeiten.</p>
+        <nav class="nav">
+          <a class="ghost-link" href="index.html">Zur Beitragsübersicht</a>
+        </nav>
+      </header>
+
+      <section class="panel">
+        <h2>Neues Thema</h2>
+        <form id="topic-form" class="stack">
+          <label>
+            Titel
+            <input type="text" id="topic-name" placeholder="z. B. Produktivität, AI News" required />
+          </label>
+          <button type="submit">Thema anlegen</button>
+        </form>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Themen</h2>
+          <button id="refresh-topics" type="button">Aktualisieren</button>
+        </div>
+        <div id="topics" class="topics"></div>
+      </section>
+    </main>
+    <script src="prompts.js"></script>
+  </body>
+</html>

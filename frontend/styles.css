@@ -44,6 +44,27 @@ h2 {
   color: var(--muted);
 }
 
+.nav {
+  margin-bottom: 12px;
+}
+
+.ghost-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+  background: #f8f9ff;
+}
+
+.ghost-link:hover {
+  background: #eef2ff;
+}
+
 .panel {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -74,15 +95,22 @@ label {
 }
 
 input,
-button {
+button,
+textarea {
   font: inherit;
 }
 
-input {
+input,
+textarea {
   padding: 10px 12px;
   border-radius: 8px;
   border: 1px solid var(--border);
   background: #fdfdfd;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 84px;
 }
 
 button {
@@ -112,6 +140,11 @@ button:disabled {
   gap: 12px;
 }
 
+.posts-overview {
+  display: grid;
+  gap: 12px;
+}
+
 .topic-card {
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -129,6 +162,16 @@ button:disabled {
   gap: 12px;
 }
 
+.topic-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.inline-field {
+  font-weight: 600;
+}
+
 .topic-actions {
   display: flex;
   gap: 8px;
@@ -138,6 +181,25 @@ button:disabled {
 
 .topic-name {
   font-weight: 700;
+}
+
+.topic-prompts {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.prompt-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.prompt-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .posts {
@@ -162,13 +224,42 @@ button:disabled {
   flex: 1;
 }
 
+.post-input {
+  width: 100%;
+}
+
 .post-actions {
   display: flex;
   gap: 8px;
 }
 
+.post-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.post-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.post-topic {
+  font-weight: 700;
+}
+
 .muted {
   color: var(--muted);
+}
+
+.muted.small {
+  font-size: 12px;
 }
 
 button.ghost {
