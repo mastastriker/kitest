@@ -107,7 +107,6 @@ function renderTopic(topic) {
           Themenname
           <input type="text" class="topic-name-input" />
         </label>
-        <div class="muted">ID: <span class="topic-id"></span></div>
       </div>
       <div class="topic-actions">
         <button type="button" class="ghost" data-action="save-topic">Name speichern</button>
@@ -133,9 +132,7 @@ function renderTopic(topic) {
   `;
 
   const nameInput = card.querySelector('.topic-name-input');
-  const idSpan = card.querySelector('.topic-id');
   nameInput.value = topic.name || '';
-  idSpan.textContent = topic.id;
 
   const systemPrompt = card.querySelector('[data-prompt="system"]');
   const userPrompt = card.querySelector('[data-prompt="user"]');
