@@ -1,7 +1,6 @@
 const topicsContainer = document.getElementById('topics');
 const topicForm = document.getElementById('topic-form');
 const topicNameInput = document.getElementById('topic-name');
-const refreshButton = document.getElementById('refresh-topics');
 
 const state = {
   topics: [],
@@ -76,8 +75,6 @@ topicForm.addEventListener('submit', async (event) => {
     button.disabled = false;
   }
 });
-
-refreshButton.addEventListener('click', loadTopics);
 
 async function loadTopics() {
   topicsContainer.innerHTML = '<p class="muted">Lade Themen ...</p>';
