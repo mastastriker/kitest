@@ -1,4 +1,5 @@
 const OpenAI = require('openai');
+const { getDefaultPrompts, renderUserPrompt } = require('./prompts');
 
 const apiKey = process.env.OPENAI_API_KEY;
 const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
@@ -13,17 +14,9 @@ async function generatePostsForTopic(topic, count = 3) {
     return buildFallback(topic.name, count);
   }
 
-  const system = [
-    'Du schreibst prägnante, ansprechende X/Twitter-Posts auf Deutsch.',
-    'Maximal 260 Zeichen, keine Emojis oder Hashtags außer wenn wirklich nötig.',
-    'Liefere nur JSON: {"posts":[{"text":"..."}]} ohne zusätzlichen Text.',
-  ].join(' ');
-
-  const user = [
-    `Thema: ${topic.name}`,
-    `Erzeuge ${count} unterschiedliche Posts.`,
-    'Jeder Post soll selbsterklärend und direkt postbar sein.',
-  ].join('\n');
+  const defaults = getDefaultPrompts();
+  const system = topic.prompts?.system || defaults.system;
+  const user = renderUserPrompt(topic.prompts?.user || defaults.user, topic.name, count);
 
   const response = await client.chat.completions.create({
     model,

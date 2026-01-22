@@ -8,7 +8,9 @@ const {
   addTopic,
   addPosts,
   getPostsForTopic,
+  updateTopic,
   deletePost,
+  updatePost,
   deleteTopic,
 } = require('./store');
 const { generatePostsForTopic } = require('./chatgpt');
@@ -51,12 +53,24 @@ app.get('/api/topics/:id/posts', (req, res) => {
   return res.json({ topic, posts });
 });
 
+app.put('/api/topics/:id', (req, res) => {
+  try {
+    const updated = updateTopic(req.params.id, req.body || {});
+    if (!updated) {
+      return res.status(404).json({ error: 'topic not found' });
+    }
+    return res.json({ topic: updated });
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
 app.post('/api/topics/:id/generate', async (req, res) => {
   const topic = getTopic(req.params.id);
   if (!topic) {
     return res.status(404).json({ error: 'topic not found' });
   }
-  const count = 1;
+  const count = Number(req.body?.count) || 3;
   try {
     const generated = await generatePostsForTopic(topic, count);
     const saved = addPosts(topic.id, generated);
@@ -80,6 +94,18 @@ app.delete('/api/posts/:id', (req, res) => {
     return res.status(404).json({ error: 'post not found' });
   }
   return res.json({ post: removed });
+});
+
+app.put('/api/posts/:id', (req, res) => {
+  try {
+    const updated = updatePost(req.params.id, req.body?.text);
+    if (!updated) {
+      return res.status(404).json({ error: 'post not found' });
+    }
+    return res.json({ post: updated });
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
 });
 
 app.delete('/api/topics/:id', (req, res) => {

@@ -10,28 +10,20 @@
     <main class="page">
       <header>
         <h1>KI X-Post Generator</h1>
-        <p class="lede">Definiere Themen, generiere Beiträge, behalte den Überblick.</p>
+        <p class="lede">Übersicht aller erstellten Beiträge.</p>
+        <nav class="nav">
+          <a class="ghost-link" href="prompts.html">Themen &amp; Prompts verwalten</a>
+        </nav>
       </header>
 
       <section class="panel">
-        <h2>Neues Thema</h2>
-        <form id="topic-form" class="stack">
-          <label>
-            Titel
-            <input type="text" id="topic-name" placeholder="z. B. Produktivität, AI News" required />
-          </label>
-          <button type="submit">Thema anlegen</button>
-        </form>
-      </section>
-
-      <section class="panel">
         <div class="panel-head">
-          <h2>Themen & Beiträge</h2>
-          <button id="refresh-topics" type="button">Aktualisieren</button>
+          <h2>Beiträge</h2>
+          <button id="refresh-posts" type="button">Aktualisieren</button>
         </div>
-        <div id="topics" class="topics"></div>
+        <div id="posts" class="posts-overview"></div>
       </section>
     </main>
-    <script src="app.js"></script>
+    <script src="posts.js"></script>
   </body>
 </html>
