@@ -1,15 +1,10 @@
 const postsContainer = document.getElementById('posts');
-const refreshButton = document.getElementById('refresh-posts');
 const topicsContainer = document.getElementById('topics-overview');
-const refreshTopicsButton = document.getElementById('refresh-topics');
 
 const state = {
   posts: [],
   topics: [],
 };
-
-refreshButton.addEventListener('click', loadPosts);
-refreshTopicsButton.addEventListener('click', loadTopics);
 
 async function loadPosts() {
   postsContainer.innerHTML = '<p class="muted">Lade Beiträge ...</p>';
