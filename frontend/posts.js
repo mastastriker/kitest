@@ -1,11 +1,15 @@
 const postsContainer = document.getElementById('posts');
 const refreshButton = document.getElementById('refresh-posts');
+const topicsContainer = document.getElementById('topics-overview');
+const refreshTopicsButton = document.getElementById('refresh-topics');
 
 const state = {
   posts: [],
+  topics: [],
 };
 
 refreshButton.addEventListener('click', loadPosts);
+refreshTopicsButton.addEventListener('click', loadTopics);
 
 async function loadPosts() {
   postsContainer.innerHTML = '<p class="muted">Lade Beiträge ...</p>';
@@ -17,6 +21,66 @@ async function loadPosts() {
   } catch (err) {
     postsContainer.innerHTML = `<p class="muted">Fehler beim Laden: ${err.message}</p>`;
   }
+}
+
+async function loadTopics() {
+  topicsContainer.innerHTML = '<p class="muted">Lade Themen ...</p>';
+  try {
+    const res = await fetch('/api/topics');
+    const data = await res.json();
+    state.topics = data.topics || [];
+    renderTopics();
+  } catch (err) {
+    topicsContainer.innerHTML = `<p class="muted">Fehler beim Laden: ${err.message}</p>`;
+  }
+}
+
+async function generatePost(topicId, button) {
+  button.disabled = true;
+  try {
+    const res = await fetch(`/api/topics/${topicId}/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ count: 1 }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Generierung fehlgeschlagen');
+    }
+    await loadPosts();
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function renderTopics() {
+  if (!state.topics.length) {
+    topicsContainer.innerHTML = '<p class="muted">Noch keine Themen angelegt.</p>';
+    return;
+  }
+  topicsContainer.innerHTML = '';
+  state.topics.forEach((topic) => {
+    const card = document.createElement('article');
+    card.className = 'topic-card';
+    card.innerHTML = `
+      <div class="topic-header">
+        <div class="topic-meta">
+          <div class="topic-name">${topic.name || 'Unbenanntes Thema'}</div>
+          <div class="muted small">Prompt-Templates hinterlegt: ${
+            topic.prompts?.system && topic.prompts?.user ? 'Ja' : 'Nein'
+          }</div>
+        </div>
+        <div class="topic-actions">
+          <button type="button" class="ghost" data-action="generate">Post generieren</button>
+        </div>
+      </div>
+    `;
+    const generateButton = card.querySelector('[data-action="generate"]');
+    generateButton.addEventListener('click', () => generatePost(topic.id, generateButton));
+    topicsContainer.appendChild(card);
+  });
 }
 
 async function deletePost(postId, button) {
@@ -124,3 +188,4 @@ function renderPosts() {
 }
 
 loadPosts();
+loadTopics();
