@@ -4,7 +4,7 @@ const TOPIC_STORAGE_KEY = 'newsTopics';
 const feedForm = document.getElementById('feed-form');
 const feedNameInput = document.getElementById('feed-name');
 const feedUrlInput = document.getElementById('feed-url');
-const feedCategoryInput = document.getElementById('feed-category');
+const feedTopicSelect = document.getElementById('feed-topic');
 const feedActiveInput = document.getElementById('feed-active');
 const feedStatus = document.getElementById('feed-status');
 const feedList = document.getElementById('feed-list');
@@ -18,6 +18,7 @@ const topicList = document.getElementById('topic-list');
 const topicCount = document.getElementById('topic-count');
 
 let currentNewsItems = [];
+let availableTopics = [];
 
 const readStored = (key) => {
   try {
@@ -35,6 +36,28 @@ const writeStored = (key, value) => {
 const setStatus = (element, message, tone = 'muted') => {
   element.textContent = message;
   element.classList.toggle('danger', tone === 'danger');
+};
+
+const renderTopicOptions = (topics) => {
+  feedTopicSelect.innerHTML = '<option value="">Ohne Thema</option>';
+  topics.forEach((topic) => {
+    const option = document.createElement('option');
+    option.value = topic.id;
+    option.textContent = topic.name;
+    feedTopicSelect.appendChild(option);
+  });
+};
+
+const loadTopics = async () => {
+  try {
+    const response = await fetch('/api/topics');
+    const data = await response.json();
+    availableTopics = data.topics || [];
+    renderTopicOptions(availableTopics);
+  } catch (error) {
+    availableTopics = [];
+    renderTopicOptions([]);
+  }
 };
 
 const isValidUrl = (value) => {
@@ -62,7 +85,7 @@ const renderFeedList = (feeds) => {
           <div class="feed-title">${feed.name}</div>
           <a class="feed-url" href="${feed.url}" target="_blank" rel="noreferrer">${feed.url}</a>
           <div class="muted small">
-            Kategorie: ${feed.category || 'Keine'} · Status: ${feed.active ? 'Aktiv' : 'Inaktiv'}
+            Thema: ${feed.topicName || 'Keines'} · Status: ${feed.active ? 'Aktiv' : 'Inaktiv'}
           </div>
         </div>
         <div class="feed-actions">
@@ -97,7 +120,7 @@ const renderTopics = (topics) => {
           <a class="feed-url" href="${topic.link}" target="_blank" rel="noreferrer">${topic.source}</a>
           <div class="muted small">
             Gespeichert: ${new Date(topic.savedAt).toLocaleString('de-DE')}
-            ${topic.category ? `· Kategorie: ${topic.category}` : ''}
+            ${topic.topicName ? `· Thema: ${topic.topicName}` : ''}
           </div>
         </div>
         <button class="ghost danger" data-topic-remove="${topic.id}" type="button">Entfernen</button>
@@ -161,7 +184,7 @@ const mergeNewsItems = (feeds) => {
       link: item.link,
       publishedAt: item.publishedAt,
       source: feed.source || feed.name,
-      category: feed.category,
+      topicName: feed.topicName,
     }))
   );
 
@@ -183,7 +206,8 @@ const fetchFeedPreview = async (feed) => {
   return {
     id: feed.id,
     name: feed.name,
-    category: feed.category,
+    topicId: feed.topicId,
+    topicName: feed.topicName,
     source: data.feed?.title || feed.name || feed.url,
     items: data.items || [],
   };
@@ -226,7 +250,8 @@ const addFeed = async (event) => {
   event.preventDefault();
   let name = feedNameInput.value.trim();
   const url = feedUrlInput.value.trim();
-  const category = feedCategoryInput.value.trim();
+  const topicId = feedTopicSelect.value;
+  const topicName = availableTopics.find((topic) => topic.id === topicId)?.name || '';
   const active = feedActiveInput.checked;
 
   if (!isValidUrl(url)) {
@@ -257,7 +282,8 @@ const addFeed = async (event) => {
       id: crypto.randomUUID(),
       name,
       url,
-      category,
+      topicId,
+      topicName,
       active,
       createdAt: new Date().toISOString(),
     },
@@ -301,7 +327,7 @@ const saveTopic = (item) => {
       title: item.title,
       source: item.source,
       link: item.link,
-      category: item.category,
+      topicName: item.topicName,
       savedAt: new Date().toISOString(),
     },
     ...topics,
@@ -357,3 +383,4 @@ topicList.addEventListener('click', (event) => {
 renderFeedList(readStored(FEED_STORAGE_KEY));
 renderTopics(readStored(TOPIC_STORAGE_KEY));
 setNewsItems([]);
+loadTopics();
