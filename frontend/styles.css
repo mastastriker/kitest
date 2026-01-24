@@ -68,25 +68,42 @@ h2 {
   color: var(--muted);
 }
 
-.nav {
-  margin-bottom: 12px;
-}
-
-.ghost-link {
-  display: inline-flex;
+.primary-nav {
+  display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 12px;
-  border: 1px solid var(--border);
+  margin: 0 0 20px;
+  padding: 10px 14px;
   border-radius: 999px;
-  color: var(--accent);
-  text-decoration: none;
-  font-weight: 600;
-  background: var(--chip-bg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
 }
 
-.ghost-link:hover {
+.primary-nav a {
+  text-decoration: none;
+  color: var(--text);
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.primary-nav a:hover {
   background: var(--chip-hover);
+}
+
+.primary-nav .nav-home {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  font-size: 18px;
+}
+
+.primary-nav .is-active {
+  background: var(--accent);
+  color: var(--accent-contrast);
 }
 
 .panel {
@@ -370,30 +387,19 @@ button.ghost.danger {
 }
 
 .theme-toggle {
-  position: absolute;
-  top: 20px;
-  right: 20px;
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-}
-
-.theme-toggle span {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--muted);
 }
 
 .switch {
   position: relative;
   display: inline-block;
-  width: 44px;
-  height: 24px;
+  width: 92px;
+  height: 44px;
 }
 
 .switch input {
@@ -406,7 +412,7 @@ button.ghost.danger {
   position: absolute;
   cursor: pointer;
   inset: 0;
-  background-color: var(--border);
+  background-color: #ffe8a3;
   transition: 0.2s;
   border-radius: 999px;
 }
@@ -414,28 +420,56 @@ button.ghost.danger {
 .slider::before {
   position: absolute;
   content: "";
-  height: 18px;
-  width: 18px;
-  left: 3px;
-  top: 3px;
-  background-color: var(--surface);
-  transition: 0.2s;
+  height: 36px;
+  width: 36px;
+  left: 4px;
+  top: 4px;
+  background-color: #f3b700;
+  transition: 0.2s ease;
   border-radius: 50%;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.3);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
+  background-image: radial-gradient(circle at center, transparent 7px, #fef3c7 8px);
 }
 
 .switch input:checked + .slider {
-  background-color: var(--accent);
+  background-color: #0f2f3e;
 }
 
 .switch input:checked + .slider::before {
-  transform: translateX(20px);
+  transform: translateX(48px);
+  background-color: #37b4ff;
+  background-image: radial-gradient(circle at 12px 14px, #ffffff 0 6px, transparent 7px);
+}
+
+.slider::after {
+  content: "";
+  position: absolute;
+  top: 12px;
+  left: 56px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.18);
+  transition: 0.2s ease;
+}
+
+.switch input:checked + .slider::after {
+  left: 18px;
+  background: rgba(255, 255, 255, 0.5);
 }
 
 @media (max-width: 640px) {
   .theme-toggle {
     position: static;
     margin: 0 0 16px auto;
+  }
+  .primary-nav {
+    flex-wrap: wrap;
+    border-radius: 20px;
+  }
+  .primary-nav .nav-home {
+    width: 100%;
+    justify-content: center;
   }
   .topic-header {
     flex-direction: column;
