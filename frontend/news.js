@@ -54,9 +54,11 @@ const loadTopics = async () => {
     const data = await response.json();
     availableTopics = data.topics || [];
     renderTopicOptions(availableTopics);
+    renderFeedList(readStored(FEED_STORAGE_KEY));
   } catch (error) {
     availableTopics = [];
     renderTopicOptions([]);
+    renderFeedList(readStored(FEED_STORAGE_KEY));
   }
 };
 
@@ -77,6 +79,10 @@ const renderFeedList = (feeds) => {
   }
 
   feedList.classList.remove('muted');
+  const topicOptions = [
+    '<option value="">Ohne Thema</option>',
+    ...availableTopics.map((topic) => `<option value="${topic.id}">${topic.name}</option>`),
+  ].join('');
   feedList.innerHTML = feeds
     .map(
       (feed) => `
@@ -87,6 +93,12 @@ const renderFeedList = (feeds) => {
           <div class="muted small">
             Thema: ${feed.topicName || 'Keines'} · Status: ${feed.active ? 'Aktiv' : 'Inaktiv'}
           </div>
+          <label class="inline-field">
+            Thema bearbeiten
+            <select data-feed-topic="${feed.id}">
+              ${topicOptions}
+            </select>
+          </label>
         </div>
         <div class="feed-actions">
           <label class="inline-toggle">
@@ -99,6 +111,13 @@ const renderFeedList = (feeds) => {
     `
     )
     .join('');
+
+  feeds.forEach((feed) => {
+    const select = feedList.querySelector(`[data-feed-topic="${feed.id}"]`);
+    if (select) {
+      select.value = feed.topicId || '';
+    }
+  });
 };
 
 const renderTopics = (topics) => {
@@ -303,9 +322,9 @@ const removeFeed = (id) => {
   renderFeedList(next);
 };
 
-const toggleFeed = (id, active) => {
+const updateFeed = (id, updates) => {
   const feeds = readStored(FEED_STORAGE_KEY).map((feed) =>
-    feed.id === id ? { ...feed, active } : feed
+    feed.id === id ? { ...feed, ...updates } : feed
   );
   writeStored(FEED_STORAGE_KEY, feeds);
   renderFeedList(feeds);
@@ -356,8 +375,16 @@ feedList.addEventListener('click', (event) => {
 
   const toggleInput = event.target.closest('[data-feed-toggle]');
   if (toggleInput) {
-    toggleFeed(toggleInput.dataset.feedToggle, toggleInput.checked);
+    updateFeed(toggleInput.dataset.feedToggle, { active: toggleInput.checked });
   }
+});
+
+feedList.addEventListener('change', (event) => {
+  const select = event.target.closest('[data-feed-topic]');
+  if (!select) return;
+  const topicId = select.value;
+  const topicName = availableTopics.find((topic) => topic.id === topicId)?.name || '';
+  updateFeed(select.dataset.feedTopic, { topicId, topicName });
 });
 
 refreshButton.addEventListener('click', refreshNews);
