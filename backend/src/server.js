@@ -13,6 +13,7 @@ const {
   updatePost,
   deleteTopic,
 } = require('./store');
+const { getPostProperties } = require('./postProperties');
 const { generatePostsForTopic } = require('./chatgpt');
 
 const app = express();
@@ -25,6 +26,12 @@ app.use(express.static(FRONTEND_DIR));
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
+});
+
+app.get('/api/post-properties', (req, res) => {
+  res.json({
+    properties: getPostProperties().map(({ id, label }) => ({ id, label })),
+  });
 });
 
 app.get('/api/topics', (req, res) => {

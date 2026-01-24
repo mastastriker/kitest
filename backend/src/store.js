@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { getDefaultPrompts } = require('./prompts');
+const { getPostPropertyMap } = require('./postProperties');
 
 const STORE_PATH = path.join(__dirname, '..', 'data', 'store.json');
 const ENCODING = 'utf-8';
@@ -36,7 +37,9 @@ function applyPromptDefaults(topic) {
     ...defaults,
     ...(topic.prompts || {}),
   };
-  return { ...topic, prompts };
+  const postProperties = Array.isArray(topic.postProperties) ? topic.postProperties : [];
+  const newsFeedUrl = typeof topic.newsFeedUrl === 'string' ? topic.newsFeedUrl : '';
+  return { ...topic, prompts, postProperties, newsFeedUrl };
 }
 
 function normalizeTopics(store) {
@@ -78,6 +81,8 @@ function addTopic(name) {
     id: generateId('topic'),
     name: trimmed,
     prompts,
+    postProperties: [],
+    newsFeedUrl: '',
     createdAt: new Date().toISOString(),
   };
   store.topics.push(topic);
@@ -127,6 +132,17 @@ function updateTopic(topicId, updates = {}) {
     topic.prompts = nextPrompts;
   } else if (!topic.prompts) {
     topic.prompts = getDefaultPrompts();
+  }
+  if (Array.isArray(updates.postProperties)) {
+    const propertyMap = getPostPropertyMap();
+    topic.postProperties = updates.postProperties.filter((id) => propertyMap[id]);
+  } else if (!Array.isArray(topic.postProperties)) {
+    topic.postProperties = [];
+  }
+  if (typeof updates.newsFeedUrl === 'string') {
+    topic.newsFeedUrl = updates.newsFeedUrl.trim();
+  } else if (typeof topic.newsFeedUrl !== 'string') {
+    topic.newsFeedUrl = '';
   }
   store.topics[index] = topic;
   writeStore(store);

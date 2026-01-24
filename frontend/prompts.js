@@ -4,6 +4,7 @@ const topicNameInput = document.getElementById('topic-name');
 
 const state = {
   topics: [],
+  properties: [],
 };
 
 async function saveTopic(topicId, updates, button) {
@@ -93,10 +94,36 @@ async function loadTopics() {
   }
 }
 
+async function loadProperties() {
+  try {
+    const res = await fetch('/api/post-properties');
+    const data = await res.json();
+    state.properties = data.properties || [];
+  } catch (err) {
+    state.properties = [];
+  }
+}
+
 function renderTopic(topic) {
   const card = document.createElement('article');
   card.className = 'topic-card';
   card.dataset.topic = topic.id;
+  const selectedProperties = new Set(topic.postProperties || []);
+  const propertyOptions = state.properties
+    .map(
+      (property) => `
+        <label class="property-item">
+          <input type="checkbox" data-property="${property.id}" ${
+            selectedProperties.has(property.id) ? 'checked' : ''
+          } />
+          <span>${property.label}</span>
+        </label>
+      `
+    )
+    .join('');
+  const propertiesBody = propertyOptions
+    ? `<div class="properties-grid">${propertyOptions}</div>`
+    : '<p class="muted small">Keine Eigenschaften verfügbar.</p>';
   card.innerHTML = `
     <div class="topic-header">
       <div class="topic-meta">
@@ -110,35 +137,29 @@ function renderTopic(topic) {
         <button type="button" class="ghost danger" data-action="delete">Thema löschen</button>
       </div>
     </div>
-    <div class="topic-prompts">
-      <div class="prompt-grid">
-        <label>
-          System Prompt
-          <textarea class="prompt-input" data-prompt="system" rows="4"></textarea>
-        </label>
-        <label>
-          User Prompt Template
-          <textarea class="prompt-input" data-prompt="user" rows="4"></textarea>
-        </label>
-      </div>
-      <p class="muted small">Platzhalter: {{topic}} für Thema, {{count}} für Anzahl.</p>
-      <div class="prompt-actions">
-        <button type="button" class="ghost" data-action="save-prompts">Prompts speichern</button>
+    <div class="topic-properties">
+      <div class="properties-head">Post-Eigenschaften</div>
+      ${propertiesBody}
+      <label class="properties-field">
+        News-Feed URL (optional)
+        <input type="url" class="topic-feed-input" placeholder="https://www.btc-echo.de/feed/" />
+      </label>
+      <div class="properties-actions">
+        <button type="button" class="ghost" data-action="save-properties">
+          Eigenschaften speichern
+        </button>
       </div>
     </div>
   `;
 
   const nameInput = card.querySelector('.topic-name-input');
   nameInput.value = topic.name || '';
-
-  const systemPrompt = card.querySelector('[data-prompt="system"]');
-  const userPrompt = card.querySelector('[data-prompt="user"]');
-  systemPrompt.value = topic.prompts?.system || '';
-  userPrompt.value = topic.prompts?.user || '';
+  const feedInput = card.querySelector('.topic-feed-input');
+  feedInput.value = topic.newsFeedUrl || '';
 
   const deleteButton = card.querySelector('button[data-action="delete"]');
   const saveTopicButton = card.querySelector('button[data-action="save-topic"]');
-  const savePromptsButton = card.querySelector('button[data-action="save-prompts"]');
+  const savePropertiesButton = card.querySelector('button[data-action="save-properties"]');
 
   deleteButton.addEventListener('click', () => deleteTopic(topic.id, deleteButton));
   saveTopicButton.addEventListener('click', async () => {
@@ -152,24 +173,22 @@ function renderTopic(topic) {
       nameInput.value = updated.name;
     }
   });
-  savePromptsButton.addEventListener('click', async () => {
-    const system = systemPrompt.value.trim();
-    const user = userPrompt.value.trim();
-    if (!system || !user) {
-      alert('Bitte beide Prompts ausfüllen.');
-      return;
-    }
-    const updated = await saveTopic(
-      topic.id,
-      { prompts: { system, user } },
-      savePromptsButton
+  savePropertiesButton.addEventListener('click', async () => {
+    const selected = Array.from(card.querySelectorAll('input[data-property]:checked')).map(
+      (input) => input.dataset.property
     );
-    if (updated) {
-      systemPrompt.value = updated.prompts?.system || system;
-      userPrompt.value = updated.prompts?.user || user;
-    }
+    await saveTopic(
+      topic.id,
+      { postProperties: selected, newsFeedUrl: feedInput.value.trim() },
+      savePropertiesButton
+    );
   });
   topicsContainer.appendChild(card);
 }
 
-loadTopics();
+async function init() {
+  await loadProperties();
+  await loadTopics();
+}
+
+init();
