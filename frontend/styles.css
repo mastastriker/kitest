@@ -387,9 +387,10 @@ button.ghost.danger {
 }
 
 .theme-toggle {
-  position: absolute;
+  position: fixed;
   top: 8px;
   right: 8px;
+  z-index: 10;
   display: inline-flex;
   align-items: center;
   gap: 10px;
