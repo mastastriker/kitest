@@ -254,6 +254,13 @@ button:disabled {
   justify-content: flex-end;
 }
 
+.properties-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 600;
+}
+
 .prompt-grid {
   display: grid;
   gap: 10px;
