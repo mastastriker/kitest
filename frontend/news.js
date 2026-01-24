@@ -151,22 +151,9 @@ const renderTopics = (topics) => {
     .join('');
 };
 
-const isGermanText = (value) => {
-  if (!value) return false;
-  const text = value.toLowerCase();
-  return (
-    /[äöüß]/.test(text) ||
-    /\b(der|die|das|und|oder|nicht|ein|eine|mit|für|auf|von|zum|zur|im|ist|sind|wird|werden)\b/.test(
-      text
-    )
-  );
-};
-
 const setNewsItems = (items) => {
   const hiddenIds = new Set(readStored(HIDDEN_STORAGE_KEY));
-  const visibleItems = items.filter(
-    (item) => !hiddenIds.has(item.id) && isGermanText(item.title)
-  );
+  const visibleItems = items.filter((item) => !hiddenIds.has(item.id));
   const limitedItems = visibleItems.slice(0, 5);
   currentNewsItems = limitedItems;
   newsItems.innerHTML = '';
