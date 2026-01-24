@@ -19,6 +19,7 @@ const topicList = document.getElementById('topic-list');
 const topicCount = document.getElementById('topic-count');
 
 let currentNewsItems = [];
+let allNewsItems = [];
 let availableTopics = [];
 
 const readStored = (key) => {
@@ -257,6 +258,7 @@ const refreshNews = async () => {
   try {
     const results = await Promise.all(feeds.map((feed) => fetchFeedPreview(feed)));
     const merged = mergeNewsItems(results);
+    allNewsItems = merged;
     setNewsItems(merged);
     setStatus(newsStatus, `Aktualisiert: ${results.length} aktive Feeds`);
   } catch (error) {
@@ -373,7 +375,7 @@ const hideNewsItem = (id) => {
   if (hiddenItems.includes(id)) return;
   const next = [...hiddenItems, id];
   writeStored(HIDDEN_STORAGE_KEY, next);
-  setNewsItems(currentNewsItems);
+  setNewsItems(allNewsItems);
 };
 
 const removeTopic = (id) => {
@@ -433,5 +435,6 @@ topicList.addEventListener('click', (event) => {
 
 renderFeedList(readStored(FEED_STORAGE_KEY));
 renderTopics(readStored(TOPIC_STORAGE_KEY));
+allNewsItems = [];
 setNewsItems([]);
 loadTopics();
