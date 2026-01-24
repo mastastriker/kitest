@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>News-Feeds</title>
+    <title>News</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -21,35 +21,62 @@
         <a class="is-active" href="news.html" aria-current="page">News</a>
       </nav>
       <header>
-        <h1>News-Feeds</h1>
-        <p class="lede">RSS-Feeds hinzufügen und verwalten.</p>
+        <h1>News</h1>
+        <p class="lede">Wähle relevante News-Themen aus aktiven RSS-Feeds für spätere Posts.</p>
       </header>
 
       <section class="panel">
-        <h2>Feed hinzufügen</h2>
-        <p class="muted">Füge eine vollständige RSS-URL ein, z. B. von einem Blog oder News-Portal.</p>
+        <h2>RSS-Feeds verwalten</h2>
         <form id="feed-form" class="stack">
+          <label>
+            Name
+            <input type="text" id="feed-name" placeholder="z. B. TechCrunch (optional)" />
+          </label>
           <label>
             RSS-URL
             <input
               type="url"
               id="feed-url"
-              name="feed-url"
               placeholder="https://example.com/feed.xml"
               autocomplete="url"
               required
             />
           </label>
+          <label>
+            Thema (optional)
+            <select id="feed-topic">
+              <option value="">Ohne Thema</option>
+            </select>
+          </label>
+          <label class="checkbox-field">
+            <input type="checkbox" id="feed-active" checked />
+            Aktiv
+          </label>
           <button type="submit">Feed speichern</button>
         </form>
-        <p id="feed-feedback" class="muted small" role="status" aria-live="polite"></p>
+        <p id="feed-status" class="muted small" role="status" aria-live="polite"></p>
+        <div id="feed-list" class="feed-list muted">Noch keine Feeds gespeichert.</div>
       </section>
 
       <section class="panel">
         <div class="panel-head">
-          <h2>Gespeicherte Feeds</h2>
+          <h2>News-Vorschau</h2>
+          <div class="inline-actions">
+            <span id="news-count" class="badge">0 Artikel</span>
+            <button id="refresh-news" class="ghost" type="button">Aktualisieren</button>
+            <button id="reset-hidden" class="ghost" type="button">Ausgeblendete zurücksetzen</button>
+          </div>
         </div>
-        <div id="feed-list" class="feed-list muted">Noch keine Feeds gespeichert.</div>
+        <p id="news-status" class="muted small" role="status" aria-live="polite"></p>
+        <div id="news-items" class="news-items muted">Noch keine News geladen.</div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Gespeicherte Themen</h2>
+          <span id="topic-count" class="badge">0 Themen</span>
+        </div>
+        <div id="topic-list" class="feed-list muted">Noch keine Themen gespeichert.</div>
       </section>
     </main>
     <script src="theme.js"></script>
