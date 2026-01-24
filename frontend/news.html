@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>News-Feeds</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="theme-toggle">
+      <span>Dark Mode</span>
+      <label class="switch">
+        <input id="theme-toggle" type="checkbox" />
+        <span class="slider"></span>
+      </label>
+    </div>
+    <main class="page">
+      <nav class="primary-nav" aria-label="Hauptnavigation">
+        <a class="nav-home" href="index.html" aria-label="Home">🏠</a>
+        <a href="prompts.html">Themen &amp; Prompts</a>
+        <a class="is-active" href="news.html" aria-current="page">News</a>
+      </nav>
+      <header>
+        <h1>News-Feeds</h1>
+        <p class="lede">RSS-Feeds hinzufügen und verwalten.</p>
+      </header>
+
+      <section class="panel">
+        <h2>Feed hinzufügen</h2>
+        <p class="muted">Füge eine vollständige RSS-URL ein, z. B. von einem Blog oder News-Portal.</p>
+        <form id="feed-form" class="stack">
+          <label>
+            RSS-URL
+            <input
+              type="url"
+              id="feed-url"
+              name="feed-url"
+              placeholder="https://example.com/feed.xml"
+              autocomplete="url"
+              required
+            />
+          </label>
+          <button type="submit">Feed speichern</button>
+        </form>
+        <p id="feed-feedback" class="muted small" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Gespeicherte Feeds</h2>
+        </div>
+        <div id="feed-list" class="feed-list muted">Noch keine Feeds gespeichert.</div>
+      </section>
+    </main>
+    <script src="theme.js"></script>
+    <script src="news.js"></script>
+  </body>
+</html>

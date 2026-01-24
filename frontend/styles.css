@@ -374,6 +374,37 @@ button:disabled {
   font-size: 12px;
 }
 
+.danger {
+  color: var(--danger);
+}
+
+.feed-list {
+  display: grid;
+  gap: 10px;
+}
+
+.feed-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+}
+
+.feed-url {
+  font-weight: 700;
+  word-break: break-all;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.feed-url:hover {
+  text-decoration: underline;
+}
+
 button.ghost {
   background: transparent;
   color: var(--accent);
