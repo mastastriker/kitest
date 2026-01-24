@@ -131,10 +131,11 @@ const renderTopics = (topics) => {
 };
 
 const setNewsItems = (items) => {
-  currentNewsItems = items;
+  const limitedItems = items.slice(0, 5);
+  currentNewsItems = limitedItems;
   newsItems.innerHTML = '';
 
-  if (!items.length) {
+  if (!limitedItems.length) {
     newsItems.textContent = 'Noch keine News geladen.';
     newsItems.classList.add('muted');
     newsCount.textContent = '0 Artikel';
@@ -142,9 +143,9 @@ const setNewsItems = (items) => {
   }
 
   newsItems.classList.remove('muted');
-  newsCount.textContent = `${items.length} Artikel`;
+  newsCount.textContent = `${limitedItems.length} Artikel`;
 
-  items.forEach((item) => {
+  limitedItems.forEach((item) => {
     const card = document.createElement('article');
     card.className = 'news-item';
 
