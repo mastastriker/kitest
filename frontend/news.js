@@ -1,5 +1,6 @@
 const FEED_STORAGE_KEY = 'newsFeeds';
 const TOPIC_STORAGE_KEY = 'newsTopics';
+const HIDDEN_STORAGE_KEY = 'newsHiddenItems';
 
 const feedForm = document.getElementById('feed-form');
 const feedNameInput = document.getElementById('feed-name');
@@ -150,7 +151,9 @@ const renderTopics = (topics) => {
 };
 
 const setNewsItems = (items) => {
-  const limitedItems = items.slice(0, 5);
+  const hiddenIds = new Set(readStored(HIDDEN_STORAGE_KEY));
+  const visibleItems = items.filter((item) => !hiddenIds.has(item.id));
+  const limitedItems = visibleItems.slice(0, 5);
   currentNewsItems = limitedItems;
   newsItems.innerHTML = '';
 
@@ -190,7 +193,14 @@ const setNewsItems = (items) => {
     saveButton.textContent = 'Als Thema speichern';
     saveButton.dataset.topicSave = item.id;
 
+    const hideButton = document.createElement('button');
+    hideButton.className = 'ghost';
+    hideButton.type = 'button';
+    hideButton.textContent = 'Ausblenden';
+    hideButton.dataset.newsHide = item.id;
+
     actions.append(saveButton);
+    actions.append(hideButton);
     card.append(title, meta, link, actions);
     newsItems.appendChild(card);
   });
@@ -358,6 +368,14 @@ const saveTopic = (item) => {
   setStatus(newsStatus, 'Thema gespeichert.');
 };
 
+const hideNewsItem = (id) => {
+  const hiddenItems = readStored(HIDDEN_STORAGE_KEY);
+  if (hiddenItems.includes(id)) return;
+  const next = [...hiddenItems, id];
+  writeStored(HIDDEN_STORAGE_KEY, next);
+  setNewsItems(currentNewsItems);
+};
+
 const removeTopic = (id) => {
   const next = readStored(TOPIC_STORAGE_KEY).filter((topic) => topic.id !== id);
   writeStored(TOPIC_STORAGE_KEY, next);
@@ -391,15 +409,20 @@ refreshButton.addEventListener('click', refreshNews);
 
 newsItems.addEventListener('click', (event) => {
   const button = event.target.closest('[data-topic-save]');
-  if (!button) return;
-
-  const item = currentNewsItems.find((entry) => entry.id === button.dataset.topicSave);
-  if (!item) {
-    setStatus(newsStatus, 'Thema konnte nicht gefunden werden.', 'danger');
+  if (button) {
+    const item = currentNewsItems.find((entry) => entry.id === button.dataset.topicSave);
+    if (!item) {
+      setStatus(newsStatus, 'Thema konnte nicht gefunden werden.', 'danger');
+      return;
+    }
+    saveTopic(item);
     return;
   }
 
-  saveTopic(item);
+  const hideButton = event.target.closest('[data-news-hide]');
+  if (hideButton) {
+    hideNewsItem(hideButton.dataset.newsHide);
+  }
 });
 
 topicList.addEventListener('click', (event) => {
