@@ -15,11 +15,7 @@ async function generatePostsForTopic(topic, count = 3) {
     return buildFallback(topic.name, count);
   }
 
-  const defaults = getDefaultPrompts();
-  const system = topic.prompts?.system || defaults.system;
-  const baseUser = renderUserPrompt(topic.prompts?.user || defaults.user, topic.name, count);
-  const selectedProperties = selectPostProperties(topic);
-  const user = appendPropertyInstructions(baseUser, selectedProperties);
+  const { system, user } = buildPostPromptForTopic(topic, count);
 
   const response = await client.chat.completions.create({
     model,
@@ -52,19 +48,7 @@ async function generatePostFromTrend(topic, trend) {
     return buildFallbackPost(topic.name, cleanedTrend);
   }
 
-  const defaults = getDefaultPrompts();
-  const system = topic.prompts?.system || defaults.system;
-  const selectedProperties = selectPostProperties(topic);
-  const propertyHints = buildPropertyHints(selectedProperties);
-  const user = [
-    `Thema: ${topic.name}`,
-    `Trend-Idee: ${cleanedTrend}`,
-    'Erstelle genau einen prägnanten X-Post auf Deutsch.',
-    'Antwort im JSON-Format: {"post": "..." }',
-    propertyHints,
-  ]
-    .filter(Boolean)
-    .join('\n');
+  const { system, user } = buildTrendPostPrompt(topic, cleanedTrend);
 
   const response = await client.chat.completions.create({
     model,
@@ -93,6 +77,32 @@ function appendPropertyInstructions(userPrompt, selectedProperties) {
     return userPrompt;
   }
   return `${userPrompt}\n\n${lines}`;
+}
+
+function buildPostPromptForTopic(topic, count = 3) {
+  const defaults = getDefaultPrompts();
+  const system = topic.prompts?.system || defaults.system;
+  const baseUser = renderUserPrompt(topic.prompts?.user || defaults.user, topic.name, count);
+  const selectedProperties = selectPostProperties(topic);
+  const user = appendPropertyInstructions(baseUser, selectedProperties);
+  return { system, user };
+}
+
+function buildTrendPostPrompt(topic, trend) {
+  const defaults = getDefaultPrompts();
+  const system = topic.prompts?.system || defaults.system;
+  const selectedProperties = selectPostProperties(topic);
+  const propertyHints = buildPropertyHints(selectedProperties);
+  const user = [
+    `Thema: ${topic.name}`,
+    `Trend-Idee: ${trend}`,
+    'Erstelle genau einen prägnanten X-Post auf Deutsch.',
+    'Antwort im JSON-Format: {"post": "..." }',
+    propertyHints,
+  ]
+    .filter(Boolean)
+    .join('\n');
+  return { system, user };
 }
 
 function buildPropertyHints(selectedProperties) {
@@ -192,4 +202,6 @@ const sampleHooks = [
 module.exports = {
   generatePostsForTopic,
   generatePostFromTrend,
+  buildPostPromptForTopic,
+  buildTrendPostPrompt,
 };

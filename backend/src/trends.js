@@ -24,22 +24,7 @@ async function generateTrendsForTopic(topicName, mode, count = 7) {
     return buildFallback(topicName, modeLabel, clamped);
   }
 
-  const system = [
-    'Du bist Trend-Analyst für X (Twitter).',
-    'Antworte immer auf Deutsch.',
-    'Basis: weltweite Diskussionen der letzten 24–72 Stunden.',
-    'Bewerte Trends nach Diskussionsdichte (Replies wichtiger als Likes) und wiederkehrenden Narrativen.',
-    'Keine generischen Dauerbrenner, keine historischen oder zeitlosen Themen.',
-    'Output-Format: JSON mit dem Feld "trends" als Array von Strings.',
-    'Jeder Eintrag max. 1–2 kurze Stichsätze, ohne Emojis.',
-    `Gib ${clamped} Einträge aus.`,
-  ].join(' ');
-
-  const user = [
-    `Thema: ${topicName}`,
-    `Modus: ${modeLabel}`,
-    'Liefere Trend-Ideen als Grundlage für spätere X-Posts.',
-  ].join('\n');
+  const { system, user } = buildTrendPrompt(topicName, modeLabel, clamped);
 
   const response = await client.chat.completions.create({
     model,
@@ -57,6 +42,26 @@ async function generateTrendsForTopic(topicName, mode, count = 7) {
     return buildFallback(topicName, modeLabel, clamped);
   }
   return parsed.slice(0, clamped);
+}
+
+function buildTrendPrompt(topicName, modeLabel, count) {
+  const system = [
+    'Du bist Trend-Analyst für X (Twitter).',
+    'Antworte immer auf Deutsch.',
+    'Basis: weltweite Diskussionen der letzten 24–72 Stunden.',
+    'Bewerte Trends nach Diskussionsdichte (Replies wichtiger als Likes) und wiederkehrenden Narrativen.',
+    'Keine generischen Dauerbrenner, keine historischen oder zeitlosen Themen.',
+    'Output-Format: JSON mit dem Feld "trends" als Array von Strings.',
+    'Jeder Eintrag max. 1–2 kurze Stichsätze, ohne Emojis.',
+    `Gib ${count} Einträge aus.`,
+  ].join(' ');
+
+  const user = [
+    `Thema: ${topicName}`,
+    `Modus: ${modeLabel}`,
+    'Liefere Trend-Ideen als Grundlage für spätere X-Posts.',
+  ].join('\n');
+  return { system, user };
 }
 
 function clampCount(value) {
@@ -112,4 +117,5 @@ module.exports = {
   generateTrendsForTopic,
   MODE_MAP,
   clampCount,
+  buildTrendPrompt,
 };

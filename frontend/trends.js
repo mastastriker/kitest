@@ -2,6 +2,7 @@ const trendForm = document.getElementById('trend-form');
 const topicSelect = document.getElementById('trend-topic');
 const trendList = document.getElementById('trend-list');
 const trendStatus = document.getElementById('trend-status');
+const trendPrompt = document.getElementById('trend-prompt');
 
 const state = {
   topics: [],
@@ -13,6 +14,17 @@ function setStatus(message) {
 
 function resetResults() {
   trendList.innerHTML = '';
+}
+
+function renderPrompt(prompt) {
+  if (!trendPrompt) return;
+  if (!prompt) {
+    trendPrompt.textContent = 'Kein Prompt verfügbar.';
+    return;
+  }
+  const system = prompt.system || '';
+  const user = prompt.user || '';
+  trendPrompt.textContent = `System:\n${system}\n\nUser:\n${user}`.trim();
 }
 
 async function loadTopics() {
@@ -115,6 +127,7 @@ trendForm.addEventListener('submit', async (event) => {
       throw new Error(data.error || 'Generierung fehlgeschlagen');
     }
     renderTrends(data.trends || []);
+    renderPrompt(data.prompt);
     setStatus('');
   } catch (err) {
     setStatus(`Fehler: ${err.message}`);

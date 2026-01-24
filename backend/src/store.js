@@ -88,18 +88,25 @@ function addTopic(name) {
   return topic;
 }
 
-function addPosts(topicId, texts) {
+function addPosts(topicId, entries, defaults = {}) {
   const store = readStore();
-  const entries = texts.map((text) => ({
-    id: generateId('post'),
-    topicId,
-    text: text.trim(),
-    createdAt: new Date().toISOString(),
-    source: 'openai',
-  }));
-  store.posts.push(...entries);
+  const prepared = entries.map((entry) => {
+    const text = typeof entry === 'string' ? entry : entry?.text;
+    const mergedMeta =
+      typeof entry === 'string' ? defaults : { ...defaults, ...(entry?.meta || {}) };
+    const safeText = String(text || '').trim();
+    return {
+      id: generateId('post'),
+      topicId,
+      text: safeText,
+      createdAt: new Date().toISOString(),
+      source: mergedMeta?.source || 'openai',
+      prompt: mergedMeta?.prompt,
+    };
+  });
+  store.posts.push(...prepared);
   writeStore(store);
-  return entries;
+  return prepared;
 }
 
 function getPostsForTopic(topicId) {

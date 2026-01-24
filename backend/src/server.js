@@ -14,8 +14,13 @@ const {
   deleteTopic,
 } = require('./store');
 const { getPostProperties } = require('./postProperties');
-const { generatePostsForTopic, generatePostFromTrend } = require('./chatgpt');
-const { generateTrendsForTopic, MODE_MAP, clampCount } = require('./trends');
+const {
+  generatePostsForTopic,
+  generatePostFromTrend,
+  buildPostPromptForTopic,
+  buildTrendPostPrompt,
+} = require('./chatgpt');
+const { generateTrendsForTopic, MODE_MAP, clampCount, buildTrendPrompt } = require('./trends');
 const { parseFeed } = require('./news');
 
 const app = express();
@@ -82,7 +87,8 @@ app.post('/api/topics/:id/generate', async (req, res) => {
   const count = Number(req.body?.count) || 3;
   try {
     const generated = await generatePostsForTopic(topic, count);
-    const saved = addPosts(topic.id, generated);
+    const prompt = buildPostPromptForTopic(topic, count);
+    const saved = addPosts(topic.id, generated, { prompt });
     return res.json({ topic, posts: saved });
   } catch (err) {
     return res.status(500).json({ error: 'generation failed', detail: err.message });
@@ -100,7 +106,8 @@ app.post('/api/trends', async (req, res) => {
   }
   try {
     const trends = await generateTrendsForTopic(topic.name, mode, clampCount(count));
-    return res.json({ topic, mode, trends });
+    const prompt = buildTrendPrompt(topic.name, MODE_MAP[mode], clampCount(count));
+    return res.json({ topic, mode, trends, prompt });
   } catch (err) {
     return res.status(500).json({ error: 'generation failed', detail: err.message });
   }
@@ -117,7 +124,8 @@ app.post('/api/trends/post', async (req, res) => {
   }
   try {
     const text = await generatePostFromTrend(topic, trend);
-    const [post] = addPosts(topic.id, [text]);
+    const prompt = buildTrendPostPrompt(topic, trend);
+    const [post] = addPosts(topic.id, [text], { prompt });
     return res.json({ topic, post });
   } catch (err) {
     return res.status(500).json({ error: 'generation failed', detail: err.message });
@@ -127,7 +135,11 @@ app.post('/api/trends/post', async (req, res) => {
 app.get('/api/posts', (req, res) => {
   const topics = getTopics();
   const allPosts = topics.flatMap((topic) =>
-    getPostsForTopic(topic.id).map((p) => ({ ...p, topicName: topic.name }))
+    getPostsForTopic(topic.id).map((p) => ({
+      ...p,
+      topicName: topic.name,
+      prompt: p.prompt || buildPostPromptForTopic(topic, 1),
+    }))
   );
   res.json({ posts: allPosts });
 });

@@ -53,6 +53,13 @@ async function updatePost(postId, text, button) {
   }
 }
 
+function formatPrompt(prompt) {
+  if (!prompt) return 'Kein Prompt verfügbar.';
+  const system = prompt.system || '';
+  const user = prompt.user || '';
+  return `System:\n${system}\n\nUser:\n${user}`.trim();
+}
+
 function renderPosts() {
   if (!state.posts.length) {
     postsContainer.innerHTML = '<p class="muted">Noch keine Beiträge vorhanden.</p>';
@@ -85,12 +92,15 @@ function renderPosts() {
           <div class="post-actions"></div>
         </div>
         <div class="post-text"></div>
+        <pre class="code-block"></pre>
       `;
 
       const text = card.querySelector('.post-text');
       text.textContent = post.text || '';
 
       const actions = card.querySelector('.post-actions');
+      const promptBlock = card.querySelector('.code-block');
+      promptBlock.textContent = formatPrompt(post.prompt);
       const editBtn = document.createElement('button');
       editBtn.type = 'button';
       editBtn.className = 'ghost';
