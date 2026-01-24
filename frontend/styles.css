@@ -229,6 +229,12 @@ h2 {
   margin: 0;
 }
 
+.trend-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .stack {
   display: flex;
   flex-direction: column;

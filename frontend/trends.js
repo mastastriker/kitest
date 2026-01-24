@@ -3,6 +3,7 @@ const FEED_STORAGE_KEY = 'newsFeeds';
 const refreshButton = document.getElementById('refresh-trends');
 const trendsStatus = document.getElementById('trends-status');
 const trendsContent = document.getElementById('trends-content');
+const trendLookup = new Map();
 
 const readStored = (key) => {
   try {
@@ -86,6 +87,7 @@ const buildTrendMaps = (feeds, previews) => {
 
 const renderTrends = (topics) => {
   trendsContent.innerHTML = '';
+  trendLookup.clear();
   if (!topics.size) {
     trendsContent.textContent = 'Noch keine Trends geladen.';
     trendsContent.classList.add('muted');
@@ -93,8 +95,6 @@ const renderTrends = (topics) => {
   }
 
   trendsContent.classList.remove('muted');
-  const summaryTargets = [];
-
   topics.forEach((trendMap, topicName) => {
     const entries = [...trendMap.values()]
       .sort((a, b) => {
@@ -143,27 +143,34 @@ const renderTrends = (topics) => {
 
       item.append(titleWrap, meta);
 
-      if (index < 3) {
-        const summary = document.createElement('p');
-        summary.className = 'trend-summary muted small';
-        summary.dataset.summaryId = entry.id;
-        summary.textContent = 'Zusammenfassung wird geladen ...';
-        item.appendChild(summary);
-        summaryTargets.push({
-          id: entry.id,
-          title: entry.title,
-          summary: entry.summary,
-        });
-      }
+      const actions = document.createElement('div');
+      actions.className = 'trend-actions';
 
+      const summaryButton = document.createElement('button');
+      summaryButton.className = 'ghost';
+      summaryButton.type = 'button';
+      summaryButton.dataset.summaryRequest = entry.id;
+      summaryButton.textContent = 'Zusammenfassen';
+
+      const summary = document.createElement('p');
+      summary.className = 'trend-summary muted small';
+      summary.dataset.summaryId = entry.id;
+      summary.textContent = 'Noch keine Zusammenfassung.';
+
+      actions.append(summaryButton);
+      item.append(actions, summary);
+
+      trendLookup.set(entry.id, {
+        id: entry.id,
+        title: entry.title,
+        summary: entry.summary,
+      });
       list.appendChild(item);
     });
 
     section.append(head, list);
     trendsContent.appendChild(section);
   });
-
-  return summaryTargets;
 };
 
 const hydrateSummaries = (summaries) => {
@@ -176,7 +183,7 @@ const hydrateSummaries = (summaries) => {
 };
 
 const fetchSummaries = async (summaryTargets) => {
-  if (!summaryTargets.length) return;
+  if (!summaryTargets.length) return [];
   try {
     const response = await fetch('/api/trends/summaries', {
       method: 'POST',
@@ -187,9 +194,10 @@ const fetchSummaries = async (summaryTargets) => {
     if (!response.ok) {
       throw new Error(data.error || 'Zusammenfassungen konnten nicht geladen werden.');
     }
-    hydrateSummaries(data.summaries || []);
+    return data.summaries || [];
   } catch (error) {
     setStatus(error.message, 'danger');
+    return [];
   }
 };
 
@@ -208,9 +216,8 @@ const refreshTrends = async () => {
   try {
     const previews = await Promise.all(feeds.map((feed) => fetchFeedPreview(feed)));
     const topics = buildTrendMaps(feeds, previews);
-    const summaryTargets = renderTrends(topics);
+    renderTrends(topics);
     setStatus(`Aktualisiert: ${previews.length} aktive Feeds`);
-    await fetchSummaries(summaryTargets);
   } catch (error) {
     setStatus(error.message, 'danger');
     trendsContent.textContent = 'Noch keine Trends geladen.';
@@ -221,5 +228,24 @@ const refreshTrends = async () => {
 };
 
 refreshButton.addEventListener('click', refreshTrends);
+
+trendsContent.addEventListener('click', async (event) => {
+  const button = event.target.closest('[data-summary-request]');
+  if (!button) return;
+  const id = button.dataset.summaryRequest;
+  const item = trendLookup.get(id);
+  if (!item) {
+    setStatus('Trend konnte nicht gefunden werden.', 'danger');
+    return;
+  }
+  const summaryElement = trendsContent.querySelector(`[data-summary-id="${id}"]`);
+  if (summaryElement) {
+    summaryElement.textContent = 'Zusammenfassung wird geladen ...';
+  }
+  button.disabled = true;
+  const summaries = await fetchSummaries([item]);
+  hydrateSummaries(summaries);
+  button.disabled = false;
+});
 
 setStatus('Noch keine Trends geladen.');
