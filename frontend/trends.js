@@ -53,7 +53,39 @@ function renderTrends(trends) {
   }
   trends.forEach((trend) => {
     const item = document.createElement('li');
-    item.textContent = trend;
+    const text = document.createElement('span');
+    text.textContent = trend;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'ghost';
+    button.textContent = 'X Post erzeugen';
+    button.addEventListener('click', async () => {
+      const topicId = topicSelect.value;
+      if (!topicId) {
+        setStatus('Bitte zuerst ein Thema auswählen.');
+        return;
+      }
+      button.disabled = true;
+      setStatus('Post-Entwurf wird erzeugt ...');
+      try {
+        const res = await fetch('/api/trends/post', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ topicId, trend }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Post-Erstellung fehlgeschlagen');
+        }
+        setStatus('Entwurf erstellt. Auf der Startseite verfügbar.');
+      } catch (err) {
+        setStatus(`Fehler: ${err.message}`);
+      } finally {
+        button.disabled = false;
+      }
+    });
+    item.appendChild(text);
+    item.appendChild(button);
     trendList.appendChild(item);
   });
 }

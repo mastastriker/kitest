@@ -39,19 +39,72 @@ async function generatePostsForTopic(topic, count = 3) {
   return parsed;
 }
 
+async function generatePostFromTrend(topic, trend) {
+  if (!topic?.name) {
+    throw new Error('Topic is required');
+  }
+  const cleanedTrend = String(trend || '').trim();
+  if (!cleanedTrend) {
+    throw new Error('Trend is required');
+  }
+
+  if (!client) {
+    return buildFallbackPost(topic.name, cleanedTrend);
+  }
+
+  const defaults = getDefaultPrompts();
+  const system = topic.prompts?.system || defaults.system;
+  const selectedProperties = selectPostProperties(topic);
+  const propertyHints = buildPropertyHints(selectedProperties);
+  const user = [
+    `Thema: ${topic.name}`,
+    `Trend-Idee: ${cleanedTrend}`,
+    'Erstelle genau einen prägnanten X-Post auf Deutsch.',
+    'Antwort im JSON-Format: {"post": "..." }',
+    propertyHints,
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  const response = await client.chat.completions.create({
+    model,
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user', content: user },
+    ],
+    temperature: 0.7,
+    response_format: { type: 'json_object' },
+  });
+
+  const content = response.choices[0]?.message?.content;
+  const parsed = safeParsePost(content);
+  if (!parsed) {
+    return buildFallbackPost(topic.name, cleanedTrend);
+  }
+  return parsed;
+}
+
 function appendPropertyInstructions(userPrompt, selectedProperties) {
   if (!selectedProperties.length) {
     return userPrompt;
   }
+  const lines = buildPropertyHints(selectedProperties);
+  if (!lines) {
+    return userPrompt;
+  }
+  return `${userPrompt}\n\n${lines}`;
+}
+
+function buildPropertyHints(selectedProperties) {
   const propertyMap = getPostPropertyMap();
   const lines = selectedProperties
     .map((id) => propertyMap[id]?.prompt)
     .filter(Boolean)
     .map((prompt) => `- ${prompt}`);
   if (!lines.length) {
-    return userPrompt;
+    return '';
   }
-  return `${userPrompt}\n\nZusätzliche Eigenschaften für diesen Post:\n${lines.join('\n')}`;
+  return `Zusätzliche Eigenschaften für diesen Post:\n${lines.join('\n')}`;
 }
 
 function selectPostProperties(topic, maxSelection = 3) {
@@ -104,6 +157,20 @@ function safeParsePosts(payload) {
   }
 }
 
+function safeParsePost(payload) {
+  try {
+    const json = JSON.parse(payload);
+    const post = typeof json.post === 'string' ? json.post.trim() : '';
+    return post || null;
+  } catch (err) {
+    return null;
+  }
+}
+
+function buildFallbackPost(topicName, trend) {
+  return `Trend bei ${topicName}: ${trend} – ein kurzer Take für deinen nächsten X-Post.`;
+}
+
 function buildFallback(topicName, count) {
   const variations = [];
   for (let i = 0; i < count; i += 1) {
@@ -124,4 +191,5 @@ const sampleHooks = [
 
 module.exports = {
   generatePostsForTopic,
+  generatePostFromTrend,
 };

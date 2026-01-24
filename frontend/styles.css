@@ -63,6 +63,11 @@ h2 {
   font-size: 20px;
 }
 
+h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
 .lede {
   margin: 0 0 20px;
   color: var(--muted);
@@ -277,6 +282,22 @@ button:disabled {
 }
 
 .posts-overview {
+  display: grid;
+  gap: 12px;
+}
+
+.post-group {
+  display: grid;
+  gap: 12px;
+}
+
+.post-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.post-group-list {
   display: grid;
   gap: 12px;
 }
@@ -496,6 +517,14 @@ button:disabled {
   border-radius: 10px;
   padding: 10px 12px;
   line-height: 1.4;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.trend-list li button {
+  white-space: nowrap;
 }
 
 .news-item {

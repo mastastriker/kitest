@@ -14,7 +14,7 @@ const {
   deleteTopic,
 } = require('./store');
 const { getPostProperties } = require('./postProperties');
-const { generatePostsForTopic } = require('./chatgpt');
+const { generatePostsForTopic, generatePostFromTrend } = require('./chatgpt');
 const { generateTrendsForTopic, MODE_MAP, clampCount } = require('./trends');
 const { parseFeed } = require('./news');
 
@@ -101,6 +101,24 @@ app.post('/api/trends', async (req, res) => {
   try {
     const trends = await generateTrendsForTopic(topic.name, mode, clampCount(count));
     return res.json({ topic, mode, trends });
+  } catch (err) {
+    return res.status(500).json({ error: 'generation failed', detail: err.message });
+  }
+});
+
+app.post('/api/trends/post', async (req, res) => {
+  const { topicId, trend } = req.body || {};
+  const topic = getTopic(topicId);
+  if (!topic) {
+    return res.status(404).json({ error: 'topic not found' });
+  }
+  if (!trend) {
+    return res.status(400).json({ error: 'trend is required' });
+  }
+  try {
+    const text = await generatePostFromTrend(topic, trend);
+    const [post] = addPosts(topic.id, [text]);
+    return res.json({ topic, post });
   } catch (err) {
     return res.status(500).json({ error: 'generation failed', detail: err.message });
   }
