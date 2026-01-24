@@ -71,7 +71,7 @@ h2 {
 .primary-nav {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   margin: 0 0 20px;
   padding: 10px 14px;
   border-radius: 999px;
@@ -94,8 +94,11 @@ h2 {
 }
 
 .primary-nav .nav-home {
-  margin-right: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: var(--accent);
+  font-size: 18px;
 }
 
 .primary-nav .is-active {
@@ -456,8 +459,8 @@ button.ghost.danger {
     border-radius: 20px;
   }
   .primary-nav .nav-home {
-    margin-right: 0;
     width: 100%;
+    justify-content: center;
   }
   .topic-header {
     flex-direction: column;
