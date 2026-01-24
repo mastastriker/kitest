@@ -213,21 +213,36 @@ const refreshNews = async () => {
   }
 };
 
-const addFeed = (event) => {
+const fetchFeedTitle = async (url) => {
+  const response = await fetch(`/api/news/preview?url=${encodeURIComponent(url)}`);
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || 'Feed konnte nicht geladen werden.');
+  }
+  return data.feed?.title;
+};
+
+const addFeed = async (event) => {
   event.preventDefault();
-  const name = feedNameInput.value.trim();
+  let name = feedNameInput.value.trim();
   const url = feedUrlInput.value.trim();
   const category = feedCategoryInput.value.trim();
   const active = feedActiveInput.checked;
 
-  if (!name) {
-    setStatus(feedStatus, 'Bitte einen Namen angeben.', 'danger');
-    return;
-  }
-
   if (!isValidUrl(url)) {
     setStatus(feedStatus, 'Bitte eine gültige RSS-URL angeben.', 'danger');
     return;
+  }
+
+  if (!name) {
+    setStatus(feedStatus, 'Feed-Name wird geladen ...');
+    try {
+      name = (await fetchFeedTitle(url)) || 'Unbekannter Feed';
+      feedNameInput.value = name;
+    } catch (error) {
+      setStatus(feedStatus, error.message, 'danger');
+      return;
+    }
   }
 
   const feeds = readStored(FEED_STORAGE_KEY);
