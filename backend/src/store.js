@@ -66,7 +66,7 @@ function applyPromptDefaults(topic) {
   const postProperties = Array.isArray(topic.postProperties) ? topic.postProperties : [];
   const newsFeedUrl = typeof topic.newsFeedUrl === 'string' ? topic.newsFeedUrl : '';
   return { ...topic, prompts, postProperties, newsFeedUrl };
-}
+  }
 
 function normalizeTopics(store) {
   let changed = false;
