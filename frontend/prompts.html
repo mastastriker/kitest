@@ -7,20 +7,21 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <div class="theme-toggle">
+      <span>Dark Mode</span>
+      <label class="switch">
+        <input id="theme-toggle" type="checkbox" />
+        <span class="slider"></span>
+      </label>
+    </div>
     <main class="page">
-      <div class="theme-toggle">
-        <span>Dark Mode</span>
-        <label class="switch">
-          <input id="theme-toggle" type="checkbox" />
-          <span class="slider"></span>
-        </label>
-      </div>
+      <nav class="primary-nav" aria-label="Hauptnavigation">
+        <a class="nav-home" href="index.html" aria-label="Home">🏠</a>
+        <a class="is-active" href="prompts.html" aria-current="page">Themen &amp; Prompts</a>
+      </nav>
       <header>
         <h1>Themen</h1>
         <p class="lede">Themen verwalten und Post-Eigenschaften pro Thema festlegen.</p>
-        <nav class="nav">
-          <a class="ghost-link" href="index.html">Zur Beitragsübersicht</a>
-        </nav>
       </header>
 
       <section class="panel">

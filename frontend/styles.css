@@ -68,25 +68,42 @@ h2 {
   color: var(--muted);
 }
 
-.nav {
-  margin-bottom: 12px;
-}
-
-.ghost-link {
-  display: inline-flex;
+.primary-nav {
+  display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 12px;
-  border: 1px solid var(--border);
+  margin: 0 0 20px;
+  padding: 10px 14px;
   border-radius: 999px;
-  color: var(--accent);
-  text-decoration: none;
-  font-weight: 600;
-  background: var(--chip-bg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
 }
 
-.ghost-link:hover {
+.primary-nav a {
+  text-decoration: none;
+  color: var(--text);
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.primary-nav a:hover {
   background: var(--chip-hover);
+}
+
+.primary-nav .nav-home {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  font-size: 18px;
+}
+
+.primary-nav .is-active {
+  background: var(--accent);
+  color: var(--accent-contrast);
 }
 
 .panel {
@@ -370,9 +387,10 @@ button.ghost.danger {
 }
 
 .theme-toggle {
-  position: absolute;
-  top: 20px;
-  right: 20px;
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
   display: inline-flex;
   align-items: center;
   gap: 10px;
@@ -436,6 +454,14 @@ button.ghost.danger {
   .theme-toggle {
     position: static;
     margin: 0 0 16px auto;
+  }
+  .primary-nav {
+    flex-wrap: wrap;
+    border-radius: 20px;
+  }
+  .primary-nav .nav-home {
+    width: 100%;
+    justify-content: center;
   }
   .topic-header {
     flex-direction: column;
