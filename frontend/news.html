@@ -22,38 +22,58 @@
       </nav>
       <header>
         <h1>News</h1>
-        <p class="lede">Teste die News-API und inspiziere Antworten für RSS-Feeds.</p>
+        <p class="lede">Wähle relevante News-Themen aus aktiven RSS-Feeds für spätere Posts.</p>
       </header>
 
       <section class="panel">
-        <h2>Feed abrufen</h2>
-        <form id="news-form" class="stack">
+        <h2>RSS-Feeds verwalten</h2>
+        <form id="feed-form" class="stack">
+          <label>
+            Name
+            <input type="text" id="feed-name" placeholder="z. B. TechCrunch" required />
+          </label>
           <label>
             RSS-URL
             <input
               type="url"
-              id="news-url"
+              id="feed-url"
               placeholder="https://example.com/feed.xml"
               autocomplete="url"
               required
             />
           </label>
-          <button type="submit">Abrufen</button>
+          <label>
+            Kategorie (optional)
+            <input type="text" id="feed-category" placeholder="z. B. Crypto" />
+          </label>
+          <label class="checkbox-field">
+            <input type="checkbox" id="feed-active" checked />
+            Aktiv
+          </label>
+          <button type="submit">Feed speichern</button>
         </form>
-        <p id="news-status" class="muted small" role="status" aria-live="polite"></p>
+        <p id="feed-status" class="muted small" role="status" aria-live="polite"></p>
+        <div id="feed-list" class="feed-list muted">Noch keine Feeds gespeichert.</div>
       </section>
 
       <section class="panel">
         <div class="panel-head">
-          <h2>Feed-Vorschau</h2>
-          <span id="news-count" class="badge">0 Artikel</span>
+          <h2>News-Vorschau</h2>
+          <div class="inline-actions">
+            <span id="news-count" class="badge">0 Artikel</span>
+            <button id="refresh-news" class="ghost" type="button">Aktualisieren</button>
+          </div>
         </div>
-        <div id="news-items" class="news-items muted">Noch keine Artikel geladen.</div>
+        <p id="news-status" class="muted small" role="status" aria-live="polite"></p>
+        <div id="news-items" class="news-items muted">Noch keine News geladen.</div>
       </section>
 
       <section class="panel">
-        <h2>Rohdaten</h2>
-        <pre id="news-output" class="code-block">Noch keine Daten.</pre>
+        <div class="panel-head">
+          <h2>Gespeicherte Themen</h2>
+          <span id="topic-count" class="badge">0 Themen</span>
+        </div>
+        <div id="topic-list" class="feed-list muted">Noch keine Themen gespeichert.</div>
       </section>
     </main>
     <script src="theme.js"></script>

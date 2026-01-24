@@ -193,6 +193,17 @@ label {
   font-weight: 600;
 }
 
+.checkbox-field {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.checkbox-field input {
+  margin: 0;
+}
+
 input,
 button,
 textarea {
@@ -481,6 +492,31 @@ button:disabled {
   border-radius: 10px;
   border: 1px solid var(--border);
   background: var(--surface-alt);
+}
+
+.feed-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.feed-title {
+  font-weight: 700;
+}
+
+.feed-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.inline-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
 }
 
 .feed-url {
