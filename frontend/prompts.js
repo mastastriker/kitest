@@ -109,6 +109,8 @@ function renderTopic(topic) {
   card.className = 'topic-card';
   card.dataset.topic = topic.id;
   const selectedProperties = new Set(topic.postProperties || []);
+  const selectedCount = selectedProperties.size;
+  const totalCount = state.properties.length;
   const propertyOptions = state.properties
     .map(
       (property) => `
@@ -137,15 +139,20 @@ function renderTopic(topic) {
         <button type="button" class="ghost danger" data-action="delete">Thema löschen</button>
       </div>
     </div>
-    <div class="topic-properties">
-      <div class="properties-head">Post-Eigenschaften</div>
-      ${propertiesBody}
-      <div class="properties-actions">
-        <button type="button" class="ghost" data-action="save-properties">
-          Eigenschaften speichern
-        </button>
+    <details class="topic-properties">
+      <summary class="properties-summary">
+        <span>Post-Eigenschaften</span>
+        <span class="muted small properties-count">${selectedCount} / ${totalCount} ausgewählt</span>
+      </summary>
+      <div class="properties-body">
+        ${propertiesBody}
+        <div class="properties-actions">
+          <button type="button" class="ghost" data-action="save-properties">
+            Eigenschaften speichern
+          </button>
+        </div>
       </div>
-    </div>
+    </details>
   `;
 
   const nameInput = card.querySelector('.topic-name-input');
@@ -154,6 +161,7 @@ function renderTopic(topic) {
   const deleteButton = card.querySelector('button[data-action="delete"]');
   const saveTopicButton = card.querySelector('button[data-action="save-topic"]');
   const savePropertiesButton = card.querySelector('button[data-action="save-properties"]');
+  const propertiesCount = card.querySelector('.properties-count');
 
   deleteButton.addEventListener('click', () => deleteTopic(topic.id, deleteButton));
   saveTopicButton.addEventListener('click', async () => {
@@ -172,6 +180,13 @@ function renderTopic(topic) {
       (input) => input.dataset.property
     );
     await saveTopic(topic.id, { postProperties: selected }, savePropertiesButton);
+  });
+  card.querySelectorAll('input[data-property]').forEach((input) => {
+    input.addEventListener('change', () => {
+      if (!propertiesCount) return;
+      const nextCount = card.querySelectorAll('input[data-property]:checked').length;
+      propertiesCount.textContent = `${nextCount} / ${totalCount} ausgewählt`;
+    });
   });
   topicsContainer.appendChild(card);
 }
