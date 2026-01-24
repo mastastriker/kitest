@@ -64,9 +64,8 @@ function applyPromptDefaults(topic) {
     ...(topic.prompts || {}),
   };
   const postProperties = Array.isArray(topic.postProperties) ? topic.postProperties : [];
-  const newsFeedUrl = typeof topic.newsFeedUrl === 'string' ? topic.newsFeedUrl : '';
-  return { ...topic, prompts, postProperties, newsFeedUrl };
-  }
+  return { ...topic, prompts, postProperties };
+}
 
 function normalizeTopics(store) {
   let changed = false;
@@ -108,7 +107,6 @@ function addTopic(name) {
     name: trimmed,
     prompts,
     postProperties: [],
-    newsFeedUrl: '',
     createdAt: new Date().toISOString(),
   };
   store.topics.push(topic);
@@ -312,11 +310,6 @@ function updateTopic(topicId, updates = {}) {
     topic.postProperties = updates.postProperties.filter((id) => propertyMap[id]);
   } else if (!Array.isArray(topic.postProperties)) {
     topic.postProperties = [];
-  }
-  if (typeof updates.newsFeedUrl === 'string') {
-    topic.newsFeedUrl = updates.newsFeedUrl.trim();
-  } else if (typeof topic.newsFeedUrl !== 'string') {
-    topic.newsFeedUrl = '';
   }
   store.topics[index] = topic;
   writeStore(store);

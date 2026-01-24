@@ -148,10 +148,6 @@ function renderTopic(topic) {
     <div class="topic-properties">
       <div class="properties-head">Post-Eigenschaften</div>
       ${propertiesBody}
-      <label class="properties-field">
-        News-Feed URL (optional)
-        <input type="url" class="topic-feed-input" placeholder="https://www.btc-echo.de/feed/" />
-      </label>
       <div class="properties-actions">
         <button type="button" class="ghost" data-action="save-properties">
           Eigenschaften speichern
@@ -162,8 +158,6 @@ function renderTopic(topic) {
 
   const nameInput = card.querySelector('.topic-name-input');
   nameInput.value = topic.name || '';
-  const feedInput = card.querySelector('.topic-feed-input');
-  feedInput.value = topic.newsFeedUrl || '';
 
   const deleteButton = card.querySelector('button[data-action="delete"]');
   const saveTopicButton = card.querySelector('button[data-action="save-topic"]');
@@ -181,14 +175,6 @@ function renderTopic(topic) {
       nameInput.value = updated.name;
     }
   });
-  savePropertiesButton.addEventListener('click', async () => {
-    const selected = Array.from(card.querySelectorAll('input[data-property]:checked')).map(
-      (input) => input.dataset.property
-    );
-    await saveTopic(
-      topic.id,
-      { postProperties: selected, newsFeedUrl: feedInput.value.trim() },
-      savePropertiesButton
   savePropertiesButton.addEventListener('click', async () => {
     const selected = Array.from(card.querySelectorAll('input[data-property]:checked')).map(
       (input) => input.dataset.property
@@ -392,12 +378,6 @@ function renderNewsSource(source) {
   newsSourcesContainer.appendChild(card);
 }
 
-async function init() {
-  await loadProperties();
-  await loadTopics();
-}
-
-init();
 if (newsSourceForm) {
   newsSourceForm.addEventListener('submit', async (event) => {
     event.preventDefault();
