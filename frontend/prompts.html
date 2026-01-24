@@ -20,6 +20,7 @@
         <p class="lede">Themen verwalten und Post-Eigenschaften pro Thema festlegen.</p>
         <nav class="nav">
           <a class="ghost-link" href="index.html">Zur Beitragsübersicht</a>
+          <a class="ghost-link" href="news-test.html">News-Feed Test</a>
         </nav>
       </header>
 
@@ -39,6 +40,36 @@
           <h2>Themen</h2>
         </div>
         <div id="topics" class="topics"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Neue News-Quelle</h2>
+        <form id="news-source-form" class="stack">
+          <label>
+            Name
+            <input type="text" id="news-source-name" placeholder="z. B. TechCrunch RSS" required />
+          </label>
+          <label>
+            Feed-URL
+            <input type="url" id="news-source-url" placeholder="https://example.com/rss" required />
+          </label>
+          <label class="inline-field">
+            Aktiv
+            <input type="checkbox" id="news-source-active" checked />
+          </label>
+          <div>
+            <div class="properties-head">Zugeordnete Themen</div>
+            <div id="news-source-topics" class="properties-grid"></div>
+          </div>
+          <button type="submit">Quelle anlegen</button>
+        </form>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>News-Quellen</h2>
+        </div>
+        <div id="news-sources" class="topics"></div>
       </section>
     </main>
     <script src="theme.js"></script>
