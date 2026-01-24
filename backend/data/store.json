@@ -78,5 +78,7 @@
       "createdAt": "2026-01-22T23:23:45.507Z",
       "source": "openai"
     }
-  ]
+  ],
+  "newsSources": [],
+  "newsItems": []
 }
