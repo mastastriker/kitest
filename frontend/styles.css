@@ -180,6 +180,55 @@ h2 {
   gap: 12px;
 }
 
+.trends-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.trend-topic {
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+}
+
+.trend-topic-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.trend-list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.trend-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.trend-title a {
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.trend-title a:hover {
+  color: var(--accent);
+}
+
+.trend-summary {
+  margin: 0;
+}
+
 .stack {
   display: flex;
   flex-direction: column;

@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="de">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>KI X-Post Generator</title>
+    <title>Trends</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -16,31 +16,29 @@
     </div>
     <main class="page">
       <nav class="primary-nav" aria-label="Hauptnavigation">
-        <a class="nav-home is-active" href="index.html" aria-current="page" aria-label="Home">🏠</a>
+        <a class="nav-home" href="index.html" aria-label="Home">🏠</a>
         <a href="prompts.html">Themen &amp; Prompts</a>
         <a href="news.html">News</a>
-        <a href="trends.html">Trends</a>
+        <a class="is-active" href="trends.html" aria-current="page">Trends</a>
       </nav>
       <header>
-        <h1>KI X-Post Generator v1</h1>
-        <p class="lede">Übersicht aller erstellten Beiträge.</p>
+        <h1>Trends</h1>
+        <p class="lede">
+          Aus aktiven RSS-Feeds werden Themen nach Häufigkeit bewertet. Pro Thema erscheinen die Top 10
+          Trends, die Top 3 erhalten eine kurze Zusammenfassung.
+        </p>
       </header>
 
       <section class="panel">
         <div class="panel-head">
-          <h2>Themen</h2>
+          <h2>Aktuelle Trends</h2>
+          <button id="refresh-trends" type="button">Aktualisieren</button>
         </div>
-        <div id="topics-overview" class="topics"></div>
-      </section>
-
-      <section class="panel">
-        <div class="panel-head">
-          <h2>Beiträge</h2>
-        </div>
-        <div id="posts" class="posts-overview"></div>
+        <p id="trends-status" class="muted small" role="status" aria-live="polite"></p>
+        <div id="trends-content" class="trends-content muted">Noch keine Trends geladen.</div>
       </section>
     </main>
     <script src="theme.js"></script>
-    <script src="posts.js"></script>
+    <script src="trends.js"></script>
   </body>
 </html>

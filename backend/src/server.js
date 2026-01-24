@@ -14,7 +14,7 @@ const {
   deleteTopic,
 } = require('./store');
 const { getPostProperties } = require('./postProperties');
-const { generatePostsForTopic } = require('./chatgpt');
+const { generatePostsForTopic, generateTrendSummaries } = require('./chatgpt');
 const { parseFeed } = require('./news');
 
 const app = express();
@@ -129,6 +129,30 @@ app.get('/api/news/preview', async (req, res) => {
   } catch (err) {
     clearTimeout(timeout);
     return res.status(500).json({ error: 'feed request failed', detail: err.message });
+  }
+});
+
+app.post('/api/trends/summaries', async (req, res) => {
+  const items = req.body?.items;
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'items are required' });
+  }
+  const sanitized = items
+    .map((item) => ({
+      id: item?.id,
+      title: item?.title,
+      summary: item?.summary,
+    }))
+    .filter((item) => item.id && item.title);
+  if (!sanitized.length) {
+    return res.status(400).json({ error: 'items must include id and title' });
+  }
+
+  try {
+    const summaries = await generateTrendSummaries(sanitized);
+    return res.json({ summaries });
+  } catch (err) {
+    return res.status(500).json({ error: 'summary generation failed', detail: err.message });
   }
 });
 

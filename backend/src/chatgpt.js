@@ -39,6 +39,49 @@ async function generatePostsForTopic(topic, count = 3) {
   return parsed;
 }
 
+async function generateTrendSummaries(items) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return [];
+  }
+
+  if (!client) {
+    return items.map((item) => ({ id: item.id, summary: buildSummaryFallback(item) }));
+  }
+
+  const system =
+    'Du fasst Nachrichten kurz auf Deutsch zusammen. Antworte als JSON-Objekt mit einem Feld "summaries" (Array).';
+  const user = `Erstelle für jede News eine Zusammenfassung mit maximal 3 Sätzen. Antworte im JSON-Format:\n{\n  "summaries": [\n    { "id": "ID", "summary": "TEXT" }\n  ]\n}\n\nNews:\n${items
+    .map(
+      (item) =>
+        `ID: ${item.id}\nTitel: ${item.title}\nInhalt: ${item.summary || 'Keine Zusammenfassung vorhanden.'}`
+    )
+    .join('\n\n')}`;
+
+  try {
+    const response = await client.chat.completions.create({
+      model,
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: user },
+      ],
+      temperature: 0.4,
+      response_format: { type: 'json_object' },
+    });
+
+    const content = response.choices[0]?.message?.content;
+    const parsed = safeParseSummaries(content);
+    if (!parsed.length) {
+      return items.map((item) => ({ id: item.id, summary: buildSummaryFallback(item) }));
+    }
+    return parsed.map((entry) => ({
+      id: entry.id,
+      summary: clampSummary(entry.summary || buildSummaryFallback(items.find((i) => i.id === entry.id))),
+    }));
+  } catch (err) {
+    return items.map((item) => ({ id: item.id, summary: buildSummaryFallback(item) }));
+  }
+}
+
 function appendPropertyInstructions(userPrompt, selectedProperties) {
   if (!selectedProperties.length) {
     return userPrompt;
@@ -104,6 +147,21 @@ function safeParsePosts(payload) {
   }
 }
 
+function safeParseSummaries(payload) {
+  try {
+    const json = JSON.parse(payload);
+    const summaries = json.summaries || [];
+    return summaries
+      .map((entry) => ({
+        id: entry?.id,
+        summary: entry?.summary,
+      }))
+      .filter((entry) => entry.id);
+  } catch (err) {
+    return [];
+  }
+}
+
 function buildFallback(topicName, count) {
   const variations = [];
   for (let i = 0; i < count; i += 1) {
@@ -112,6 +170,26 @@ function buildFallback(topicName, count) {
     );
   }
   return variations;
+}
+
+function buildSummaryFallback(item) {
+  if (!item) {
+    return 'Keine Zusammenfassung verfügbar.';
+  }
+  const base = item.summary || item.title || 'Keine Zusammenfassung verfügbar.';
+  return clampSummary(base);
+}
+
+function clampSummary(text) {
+  if (!text) {
+    return 'Keine Zusammenfassung verfügbar.';
+  }
+  const trimmed = text.replace(/\s+/g, ' ').trim();
+  const sentences = trimmed.match(/[^.!?]+[.!?]+/g);
+  if (!sentences) {
+    return trimmed;
+  }
+  return sentences.slice(0, 3).join(' ').trim();
 }
 
 const sampleHooks = [
@@ -124,4 +202,5 @@ const sampleHooks = [
 
 module.exports = {
   generatePostsForTopic,
+  generateTrendSummaries,
 };
