@@ -1,9 +1,5 @@
 const postsContainer = document.getElementById('posts');
 const topicsContainer = document.getElementById('topics-overview');
-const generationTopicsContainer = document.getElementById('generation-topics');
-const prepareButton = document.getElementById('prepare-generation');
-const generationNewsContainer = document.getElementById('generation-news');
-const generationCount = document.getElementById('generation-count');
 
 const state = {
   posts: [],
@@ -29,7 +25,6 @@ async function loadTopics() {
     const data = await res.json();
     state.topics = data.topics || [];
     renderTopics();
-    renderGenerationTopics();
   } catch (err) {
     topicsContainer.innerHTML = `<p class="muted">Fehler beim Laden: ${err.message}</p>`;
   }
@@ -81,93 +76,6 @@ function renderTopics() {
     generateButton.addEventListener('click', () => generatePost(topic.id, generateButton));
     topicsContainer.appendChild(card);
   });
-}
-
-function renderGenerationTopics() {
-  if (!generationTopicsContainer) return;
-  if (!state.topics.length) {
-    generationTopicsContainer.innerHTML = '<p class="muted small">Noch keine Themen vorhanden.</p>';
-    if (prepareButton) prepareButton.disabled = true;
-    return;
-  }
-  generationTopicsContainer.innerHTML = state.topics
-    .map(
-      (topic) => `
-        <label class="property-item">
-          <input type="checkbox" data-generation-topic="${topic.id}" />
-          <span>${topic.name}</span>
-        </label>
-      `
-    )
-    .join('');
-  if (prepareButton) prepareButton.disabled = false;
-}
-
-function getSelectedGenerationTopics() {
-  return Array.from(document.querySelectorAll('input[data-generation-topic]:checked')).map(
-    (input) => input.dataset.generationTopic
-  );
-}
-
-function renderGenerationNews(items) {
-  if (!generationNewsContainer) return;
-  generationNewsContainer.innerHTML = '';
-  if (!items.length) {
-    generationNewsContainer.innerHTML = '<p class="muted">Keine News für die Auswahl gefunden.</p>';
-    if (generationCount) generationCount.textContent = '';
-    return;
-  }
-  if (generationCount) generationCount.textContent = `${items.length} Treffer`;
-  items.forEach((item) => {
-    const card = document.createElement('article');
-    card.className = 'post-card';
-    const published = item.publishedAt
-      ? new Date(item.publishedAt).toLocaleString('de-DE')
-      : '—';
-    const excerpt = item.content ? item.content.slice(0, 220) : '';
-    card.innerHTML = `
-      <div class="post-card-head">
-        <div>
-          <div class="post-topic">${item.title}</div>
-          <div class="muted small">${item.sourceName || 'Unbekannte Quelle'}</div>
-        </div>
-        <div class="muted small">${published}</div>
-      </div>
-      <p class="muted">${excerpt || 'Kein Textauszug vorhanden.'}</p>
-    `;
-    generationNewsContainer.appendChild(card);
-  });
-}
-
-async function prepareGenerationNews() {
-  const selectedTopics = getSelectedGenerationTopics();
-  if (!selectedTopics.length) {
-    alert('Bitte mindestens ein Thema auswählen.');
-    return;
-  }
-  if (generationNewsContainer) {
-    generationNewsContainer.innerHTML = '<p class="muted">News werden geladen ...</p>';
-  }
-  if (generationCount) generationCount.textContent = '';
-  try {
-    const res = await fetch('/api/news-items/filter', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ topicIds: selectedTopics }),
-    });
-    const data = await res.json();
-    const items = data.items || [];
-    const sorted = items.sort((a, b) => {
-      const aTime = new Date(a.publishedAt || 0).getTime();
-      const bTime = new Date(b.publishedAt || 0).getTime();
-      return bTime - aTime;
-    });
-    renderGenerationNews(sorted);
-  } catch (err) {
-    if (generationNewsContainer) {
-      generationNewsContainer.innerHTML = `<p class="muted">Fehler: ${err.message}</p>`;
-    }
-  }
 }
 
 async function deletePost(postId, button) {
@@ -276,7 +184,3 @@ function renderPosts() {
 
 loadPosts();
 loadTopics();
-
-if (prepareButton) {
-  prepareButton.addEventListener('click', prepareGenerationNews);
-}

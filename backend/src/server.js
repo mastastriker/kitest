@@ -12,23 +12,13 @@ const {
   deletePost,
   updatePost,
   deleteTopic,
-  getNewsSources,
-  getActiveNewsSources,
-  addNewsSource,
-  updateNewsSource,
-  deleteNewsSource,
-  addNewsItems,
-  getNewsItems,
-  getNewsItemsForTopics,
 } = require('./store');
 const { getPostProperties } = require('./postProperties');
 const { generatePostsForTopic } = require('./chatgpt');
-const { fetchNewsForSources } = require('./news');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const FRONTEND_DIR = path.join(__dirname, '..', '..', 'frontend');
-const NEWS_FETCH_INTERVAL_MINUTES = Number(process.env.NEWS_FETCH_INTERVAL_MINUTES) || 15;
 
 app.use(cors());
 app.use(express.json());
@@ -105,49 +95,6 @@ app.get('/api/posts', (req, res) => {
   res.json({ posts: allPosts });
 });
 
-app.get('/api/news-sources', (req, res) => {
-  res.json({ sources: getNewsSources() });
-});
-
-app.post('/api/news-sources', (req, res) => {
-  try {
-    const source = addNewsSource(req.body || {});
-    return res.status(201).json({ source });
-  } catch (err) {
-    return res.status(400).json({ error: err.message });
-  }
-});
-
-app.put('/api/news-sources/:id', (req, res) => {
-  try {
-    const updated = updateNewsSource(req.params.id, req.body || {});
-    if (!updated) {
-      return res.status(404).json({ error: 'source not found' });
-    }
-    return res.json({ source: updated });
-  } catch (err) {
-    return res.status(400).json({ error: err.message });
-  }
-});
-
-app.delete('/api/news-sources/:id', (req, res) => {
-  const removed = deleteNewsSource(req.params.id);
-  if (!removed) {
-    return res.status(404).json({ error: 'source not found' });
-  }
-  return res.json({ source: removed });
-});
-
-app.get('/api/news-items', (req, res) => {
-  const { topicId, sourceId } = req.query || {};
-  res.json({ items: getNewsItems({ topicId, sourceId }) });
-});
-
-app.post('/api/news-items/filter', (req, res) => {
-  const topicIds = Array.isArray(req.body?.topicIds) ? req.body.topicIds : [];
-  res.json({ items: getNewsItemsForTopics(topicIds) });
-});
-
 app.delete('/api/posts/:id', (req, res) => {
   const removed = deletePost(req.params.id);
   if (!removed) {
@@ -189,23 +136,3 @@ app.listen(PORT, () => {
   // eslint-disable-next-line no-console
   console.log(`Server running on http://localhost:${PORT}`);
 });
-
-let newsFetchInFlight = false;
-
-async function runNewsFetch() {
-  if (newsFetchInFlight) {
-    return;
-  }
-  newsFetchInFlight = true;
-  try {
-    const sources = getActiveNewsSources();
-    if (sources.length) {
-      await fetchNewsForSources(sources, addNewsItems, updateNewsSource);
-    }
-  } finally {
-    newsFetchInFlight = false;
-  }
-}
-
-setTimeout(runNewsFetch, 2000);
-setInterval(runNewsFetch, NEWS_FETCH_INTERVAL_MINUTES * 60 * 1000);
