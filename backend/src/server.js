@@ -15,6 +15,7 @@ const {
 } = require('./store');
 const { getPostProperties } = require('./postProperties');
 const { generatePostsForTopic } = require('./chatgpt');
+const { parseFeed } = require('./news');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -93,6 +94,42 @@ app.get('/api/posts', (req, res) => {
     getPostsForTopic(topic.id).map((p) => ({ ...p, topicName: topic.name }))
   );
   res.json({ posts: allPosts });
+});
+
+app.get('/api/news/preview', async (req, res) => {
+  const url = req.query?.url;
+  if (!url) {
+    return res.status(400).json({ error: 'url is required' });
+  }
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(url);
+  } catch (err) {
+    return res.status(400).json({ error: 'url must be valid' });
+  }
+  if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+    return res.status(400).json({ error: 'url must use http or https' });
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const response = await fetch(parsedUrl.toString(), {
+      headers: { accept: 'application/rss+xml, application/xml, text/xml, */*' },
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!response.ok) {
+      return res.status(502).json({ error: 'feed request failed', status: response.status });
+    }
+    const xml = await response.text();
+    const parsed = parseFeed(xml);
+    return res.json({ ...parsed, sourceUrl: parsedUrl.toString(), fetchedAt: new Date().toISOString() });
+  } catch (err) {
+    clearTimeout(timeout);
+    return res.status(500).json({ error: 'feed request failed', detail: err.message });
+  }
 });
 
 app.delete('/api/posts/:id', (req, res) => {

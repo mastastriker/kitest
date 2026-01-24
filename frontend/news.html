@@ -19,38 +19,74 @@
         <a class="nav-home" href="index.html" aria-label="Home">🏠</a>
         <a href="prompts.html">Themen &amp; Prompts</a>
         <a class="is-active" href="news.html" aria-current="page">News</a>
+        <a href="news-test.html">News Test</a>
       </nav>
       <header>
         <h1>News-Feeds</h1>
         <p class="lede">RSS-Feeds hinzufügen und verwalten.</p>
       </header>
 
-      <section class="panel">
-        <h2>Feed hinzufügen</h2>
-        <p class="muted">Füge eine vollständige RSS-URL ein, z. B. von einem Blog oder News-Portal.</p>
-        <form id="feed-form" class="stack">
-          <label>
-            RSS-URL
-            <input
-              type="url"
-              id="feed-url"
-              name="feed-url"
-              placeholder="https://example.com/feed.xml"
-              autocomplete="url"
-              required
-            />
-          </label>
-          <button type="submit">Feed speichern</button>
-        </form>
-        <p id="feed-feedback" class="muted small" role="status" aria-live="polite"></p>
-      </section>
+      <nav class="secondary-nav" aria-label="News-Navigation">
+        <a href="#feeds" data-route-link="feeds">Feeds verwalten</a>
+        <a href="#reader" data-route-link="reader">Reader</a>
+        <a class="ghost-link" href="news-test.html">Testseite öffnen</a>
+      </nav>
 
-      <section class="panel">
-        <div class="panel-head">
-          <h2>Gespeicherte Feeds</h2>
-        </div>
-        <div id="feed-list" class="feed-list muted">Noch keine Feeds gespeichert.</div>
-      </section>
+      <div class="route-panel" data-route="feeds">
+        <section class="panel">
+          <h2>Feed hinzufügen</h2>
+          <p class="muted">Füge eine vollständige RSS-URL ein, z. B. von einem Blog oder News-Portal.</p>
+          <form id="feed-form" class="stack">
+            <label>
+              RSS-URL
+              <input
+                type="url"
+                id="feed-url"
+                name="feed-url"
+                placeholder="https://example.com/feed.xml"
+                autocomplete="url"
+                required
+              />
+            </label>
+            <button type="submit">Feed speichern</button>
+          </form>
+          <p id="feed-feedback" class="muted small" role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Gespeicherte Feeds</h2>
+          </div>
+          <div id="feed-list" class="feed-list muted">Noch keine Feeds gespeichert.</div>
+        </section>
+      </div>
+
+      <div class="route-panel" data-route="reader">
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Feed lesen</h2>
+            <span id="reader-count" class="badge">0 Artikel</span>
+          </div>
+          <div class="stack">
+            <label>
+              Gespeicherter Feed
+              <select id="feed-select" name="feed-select">
+                <option value="">Bitte auswählen</option>
+              </select>
+            </label>
+            <label>
+              Oder RSS-URL manuell
+              <input type="url" id="manual-url" placeholder="https://example.com/feed.xml" />
+            </label>
+            <div class="inline-actions">
+              <button id="fetch-feed" type="button">Feed abrufen</button>
+              <button id="clear-preview" class="ghost" type="button">Vorschau leeren</button>
+            </div>
+            <p id="news-status" class="muted small" role="status" aria-live="polite"></p>
+          </div>
+          <div id="news-items" class="news-items muted">Noch keine Artikel geladen.</div>
+        </section>
+      </div>
     </main>
     <script src="theme.js"></script>
     <script src="news.js"></script>
