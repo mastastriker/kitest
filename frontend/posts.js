@@ -97,11 +97,11 @@ function renderPosts() {
       `;
 
       const text = card.querySelector('.post-text');
-      text.textContent = post.generatedText || post.text || '';
+      text.textContent = post.generated_post || post.generatedPost || post.text || '';
 
       const actions = card.querySelector('.post-actions');
       const promptBlock = card.querySelector('.code-block');
-      promptBlock.textContent = formatPrompt(post.promptText, post.prompt);
+      promptBlock.textContent = formatPrompt(post.prompt_text || post.promptText, post.prompt);
       const editBtn = document.createElement('button');
       editBtn.type = 'button';
       editBtn.className = 'ghost';

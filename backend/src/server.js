@@ -98,6 +98,7 @@ app.post('/api/topics/:id/generate', async (req, res) => {
     const saved = addPosts(topic.id, generated, {
       prompt,
       promptText: formatPromptText(prompt),
+      generatedPost: '',
     });
     return res.json({ topic, posts: saved });
   } catch (err) {
@@ -138,7 +139,7 @@ app.post('/api/trends/post', async (req, res) => {
     const [post] = addPosts(topic.id, [text], {
       prompt,
       promptText: formatPromptText(prompt),
-      generatedText: text,
+      generatedPost: text,
     });
     return res.json({ topic, post });
   } catch (err) {
@@ -153,8 +154,10 @@ app.get('/api/posts', (req, res) => {
       ...p,
       topicName: topic.name,
       prompt: p.prompt || buildPostPromptForTopic(topic, 1),
-      promptText: p.promptText || formatPromptText(p.prompt || buildPostPromptForTopic(topic, 1)),
-      generatedText: p.generatedText || p.text,
+      promptText: p.prompt_text || formatPromptText(p.prompt || buildPostPromptForTopic(topic, 1)),
+      generatedPost: p.generated_post || p.text,
+      prompt_text: p.prompt_text || formatPromptText(p.prompt || buildPostPromptForTopic(topic, 1)),
+      generated_post: p.generated_post || p.text,
     }))
   );
   res.json({ posts: allPosts });
