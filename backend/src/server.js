@@ -11,12 +11,14 @@ const {
   updateTopic,
   deletePost,
   updatePost,
+  updatePostWithPrompt,
   deleteTopic,
 } = require('./store');
 const { getPostProperties } = require('./postProperties');
 const {
   generatePostsForTopic,
   generatePostFromTrend,
+  generatePostFromPrompt,
   buildPostPromptForTopic,
   buildTrendPostPrompt,
 } = require('./chatgpt');
@@ -36,6 +38,15 @@ function formatPromptText(prompt) {
   const system = prompt.system || '';
   const user = prompt.user || '';
   return `System:\n${system}\n\nUser:\n${user}`.trim();
+}
+
+function parsePromptText(promptText) {
+  if (!promptText) return null;
+  const match = promptText.match(/^System:\n([\s\S]*?)\n\nUser:\n([\s\S]*)$/);
+  if (!match) {
+    return null;
+  }
+  return { system: match[1].trim(), user: match[2].trim() };
 }
 
 app.get('/api/health', (req, res) => {
@@ -157,6 +168,19 @@ app.post('/api/trends/post', async (req, res) => {
   }
 });
 
+app.post('/api/trends/post/prompt', (req, res) => {
+  const { topicId, trend } = req.body || {};
+  const topic = getTopic(topicId);
+  if (!topic) {
+    return res.status(404).json({ error: 'topic not found' });
+  }
+  if (!trend) {
+    return res.status(400).json({ error: 'trend is required' });
+  }
+  const prompt = buildTrendPostPrompt(topic, trend);
+  return res.json({ prompt, prompt_text: formatPromptText(prompt) });
+});
+
 app.get('/api/posts', (req, res) => {
   const topics = getTopics();
   const allPosts = topics.flatMap((topic) =>
@@ -226,6 +250,32 @@ app.put('/api/posts/:id', (req, res) => {
     return res.json({ post: updated });
   } catch (err) {
     return res.status(400).json({ error: err.message });
+  }
+});
+
+app.post('/api/posts/:id/regenerate', async (req, res) => {
+  const { prompt_text: promptText } = req.body || {};
+  const parsed = parsePromptText(promptText);
+  if (!parsed) {
+    return res.status(400).json({ error: 'prompt_text is invalid' });
+  }
+  try {
+    const text = await generatePostFromPrompt(parsed.system, parsed.user);
+    const updated = updatePostWithPrompt(req.params.id, text, promptText, {
+      system: parsed.system,
+      user: parsed.user,
+    });
+    if (!updated) {
+      return res.status(404).json({ error: 'post not found' });
+    }
+    return res.json({ post: updated });
+  } catch (err) {
+    console.error('[posts-regenerate] generation failed', {
+      message: err.message,
+      status: err.status,
+      response: err.response,
+    });
+    return res.status(500).json({ error: 'generation failed', detail: err.message });
   }
 });
 

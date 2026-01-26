@@ -6,6 +6,8 @@ const trendPrompt = document.getElementById('trend-prompt');
 
 const state = {
   topics: [],
+  postIds: {},
+  promptTexts: {},
 };
 
 const STORAGE_KEY = 'trendResults';
@@ -60,6 +62,8 @@ function restoreSelection(saved) {
 
 function restoreResults(saved) {
   if (!saved) return;
+  state.postIds = saved.postIds || {};
+  state.promptTexts = saved.promptTexts || {};
   renderTrends(saved.trends || []);
   renderPrompt(saved.prompt);
 }
@@ -107,6 +111,95 @@ function renderTrends(trends) {
     const item = document.createElement('li');
     const text = document.createElement('span');
     text.textContent = trend;
+    const details = document.createElement('details');
+    const summary = document.createElement('summary');
+    summary.textContent = 'X-Post-Prompt anzeigen';
+    details.appendChild(summary);
+    const textarea = document.createElement('textarea');
+    textarea.className = 'post-input';
+    textarea.rows = 6;
+    const cachedPrompt = state.promptTexts[trend];
+    if (cachedPrompt) {
+      textarea.value = cachedPrompt;
+    }
+    details.addEventListener('toggle', async () => {
+      if (!details.open || textarea.value.trim()) {
+        return;
+      }
+      const topicId = topicSelect.value;
+      if (!topicId) {
+        setStatus('Bitte zuerst ein Thema auswählen.');
+        return;
+      }
+      try {
+        const res = await fetch('/api/trends/post/prompt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ topicId, trend }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.detail || data.error || 'Prompt konnte nicht geladen werden');
+        }
+        textarea.value = data.prompt_text || '';
+        state.promptTexts[trend] = textarea.value;
+        saveResults({
+          topicId,
+          mode: getSelectedMode(),
+          trends,
+          prompt: loadResults()?.prompt,
+          postIds: state.postIds,
+          promptTexts: state.promptTexts,
+        });
+      } catch (err) {
+        setStatus(`Fehler: ${err.message}`);
+      }
+    });
+    details.appendChild(textarea);
+    const updateButton = document.createElement('button');
+    updateButton.type = 'button';
+    updateButton.className = 'ghost';
+    updateButton.textContent = 'X Post aktualisieren';
+    updateButton.addEventListener('click', async () => {
+      const postId = state.postIds[trend];
+      if (!postId) {
+        setStatus('Bitte zuerst einen X-Post erzeugen.');
+        return;
+      }
+      const promptText = textarea.value.trim();
+      if (!promptText) {
+        setStatus('Bitte einen Prompt eingeben.');
+        return;
+      }
+      updateButton.disabled = true;
+      setStatus('Post wird aktualisiert ...');
+      try {
+        const res = await fetch(`/api/posts/${postId}/regenerate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt_text: promptText }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.detail || data.error || 'Aktualisierung fehlgeschlagen');
+        }
+        state.promptTexts[trend] = promptText;
+        saveResults({
+          topicId: topicSelect.value,
+          mode: getSelectedMode(),
+          trends,
+          prompt: loadResults()?.prompt,
+          postIds: state.postIds,
+          promptTexts: state.promptTexts,
+        });
+        setStatus('Entwurf aktualisiert. Auf der Startseite verfügbar.');
+      } catch (err) {
+        setStatus(`Fehler: ${err.message}`);
+      } finally {
+        updateButton.disabled = false;
+      }
+    });
+    details.appendChild(updateButton);
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'ghost';
@@ -129,6 +222,21 @@ function renderTrends(trends) {
         if (!res.ok) {
           throw new Error(data.detail || data.error || 'Post-Erstellung fehlgeschlagen');
         }
+        if (data.post?.id) {
+          state.postIds[trend] = data.post.id;
+        }
+        if (data.post?.prompt_text) {
+          textarea.value = data.post.prompt_text;
+          state.promptTexts[trend] = data.post.prompt_text;
+        }
+        saveResults({
+          topicId: topicSelect.value,
+          mode: getSelectedMode(),
+          trends,
+          prompt: loadResults()?.prompt,
+          postIds: state.postIds,
+          promptTexts: state.promptTexts,
+        });
         setStatus('Entwurf erstellt. Auf der Startseite verfügbar.');
       } catch (err) {
         setStatus(`Fehler: ${err.message}`);
@@ -137,6 +245,7 @@ function renderTrends(trends) {
       }
     });
     item.appendChild(text);
+    item.appendChild(details);
     item.appendChild(button);
     trendList.appendChild(item);
   });
@@ -173,6 +282,8 @@ trendForm.addEventListener('submit', async (event) => {
       mode,
       trends: data.trends || [],
       prompt: data.prompt,
+      postIds: state.postIds,
+      promptTexts: state.promptTexts,
     });
     setStatus('');
   } catch (err) {

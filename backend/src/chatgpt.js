@@ -68,6 +68,32 @@ async function generatePostFromTrend(topic, trend) {
   return parsed;
 }
 
+async function generatePostFromPrompt(system, user) {
+  if (!client) {
+    throw new Error('OpenAI client is not configured');
+  }
+  if (!system || !user) {
+    throw new Error('Prompt system and user are required');
+  }
+
+  const response = await client.chat.completions.create({
+    model,
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user', content: user },
+    ],
+    temperature: 0.7,
+    response_format: { type: 'json_object' },
+  });
+
+  const content = response.choices[0]?.message?.content;
+  const parsed = safeParsePost(content);
+  if (!parsed) {
+    throw new Error('OpenAI response did not include a valid post');
+  }
+  return parsed;
+}
+
 function appendPropertyInstructions(userPrompt, selectedProperties) {
   if (!selectedProperties.length) {
     return userPrompt;
@@ -186,6 +212,7 @@ function safeParsePost(payload) {
 module.exports = {
   generatePostsForTopic,
   generatePostFromTrend,
+  generatePostFromPrompt,
   buildPostPromptForTopic,
   buildTrendPostPrompt,
 };

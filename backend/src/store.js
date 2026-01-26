@@ -194,6 +194,28 @@ function updatePost(postId, text) {
   return store.posts[index];
 }
 
+function updatePostWithPrompt(postId, text, promptText, prompt) {
+  const trimmed = text?.trim();
+  if (!trimmed) {
+    throw new Error('Post text is required');
+  }
+  const store = readStore();
+  const index = store.posts.findIndex((p) => p.id === postId);
+  if (index === -1) {
+    return null;
+  }
+  store.posts[index].text = trimmed;
+  store.posts[index].generated_post = trimmed;
+  if (promptText) {
+    store.posts[index].prompt_text = String(promptText).trim();
+  }
+  if (prompt) {
+    store.posts[index].prompt = prompt;
+  }
+  writeStore(store);
+  return store.posts[index];
+}
+
 module.exports = {
   getTopics,
   getTopic,
@@ -203,5 +225,6 @@ module.exports = {
   updateTopic,
   deletePost,
   updatePost,
+  updatePostWithPrompt,
   deleteTopic,
 };
