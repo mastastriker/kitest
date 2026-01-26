@@ -37,9 +37,11 @@ async function generateTrendsForTopic(topicName, mode, count = 7) {
   });
 
   const content = response.choices[0]?.message?.content;
+  console.info('[trends] raw response:', content);
   const parsed = safeParseTrends(content);
   if (!parsed.length) {
-    return buildFallback(topicName, modeLabel, clamped);
+    console.error('[trends] invalid JSON or missing trends array:', content);
+    throw new Error('OpenAI response did not include valid trends');
   }
   return parsed.slice(0, clamped);
 }
@@ -52,7 +54,8 @@ function buildTrendPrompt(topicName, modeLabel, count) {
     'Bewerte Trends nach Diskussionsdichte (Replies wichtiger als Likes) und wiederkehrenden Narrativen.',
     'Keine generischen Dauerbrenner, keine historischen oder zeitlosen Themen.',
     'Output-Format: JSON mit dem Feld "trends" als Array von Strings.',
-    'Jeder Eintrag max. 1–2 kurze Stichsätze, ohne Emojis.',
+    'Jeder Eintrag ist eine kurze Trend-Phrase (keine vollständigen Sätze, keine Posts).',
+    'Kein Text außerhalb des JSON.',
     `Gib ${count} Einträge aus.`,
   ].join(' ');
 
@@ -72,7 +75,10 @@ function clampCount(value) {
 function safeParseTrends(payload) {
   try {
     const json = JSON.parse(payload);
-    const trends = Array.isArray(json.trends) ? json.trends : [];
+    const trends = Array.isArray(json.trends) ? json.trends : null;
+    if (!trends) {
+      return [];
+    }
     return trends.map((item) => String(item).trim()).filter(Boolean);
   } catch (err) {
     return [];

@@ -120,6 +120,11 @@ app.post('/api/trends', async (req, res) => {
     const prompt = buildTrendPrompt(topic.name, MODE_MAP[mode], clampCount(count));
     return res.json({ topic, mode, trends, prompt });
   } catch (err) {
+    console.error('[trends] generation failed', {
+      message: err.message,
+      status: err.status,
+      response: err.response,
+    });
     return res.status(500).json({ error: 'generation failed', detail: err.message });
   }
 });
