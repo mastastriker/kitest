@@ -1,4 +1,4 @@
 node_modules
 .env
-data/store.json
+backend/data/store.json
 npm-debug.log*
