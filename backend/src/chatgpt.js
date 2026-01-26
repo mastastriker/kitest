@@ -90,13 +90,18 @@ function buildPostPromptForTopic(topic, count = 3) {
 
 function buildTrendPostPrompt(topic, trend) {
   const defaults = getDefaultPrompts();
-  const system = topic.prompts?.system || defaults.system;
+  const baseSystem = topic.prompts?.system || defaults.system;
+  const system = [
+    baseSystem,
+    'Antwort-Format: JSON mit Feld "post" (String), keine weiteren Felder.',
+  ].join(' ');
   const selectedProperties = selectPostProperties(topic);
   const propertyHints = buildPropertyHints(selectedProperties);
   const user = [
     `Thema: ${topic.name}`,
     `Trend-Idee: ${trend}`,
     'Erstelle genau einen prägnanten X-Post auf Deutsch.',
+    'Der Post soll eigenständig formuliert sein und nicht nur die Trend-Idee zitieren.',
     'Antwort im JSON-Format: {"post": "..." }',
     propertyHints,
   ]
@@ -178,7 +183,15 @@ function safeParsePost(payload) {
 }
 
 function buildFallbackPost(topicName, trend) {
-  return `Trend bei ${topicName}: ${trend} – ein kurzer Take für deinen nächsten X-Post.`;
+  const leadIns = [
+    'Neuer Gesprächsstoff',
+    'Kurz und knapp',
+    'Das triggert gerade Diskussionen',
+    'Gerade heiß diskutiert',
+    'Ein Blick wert',
+  ];
+  const lead = leadIns[Math.floor(Math.random() * leadIns.length)];
+  return `${lead} in ${topicName}: ${trend}. Mein Take: kurz einordnen, klar positionieren, Mehrwert liefern.`;
 }
 
 function buildFallback(topicName, count) {
