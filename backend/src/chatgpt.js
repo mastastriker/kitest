@@ -12,7 +12,7 @@ async function generatePostsForTopic(topic, count = 3) {
   }
 
   if (!client) {
-    return buildFallback(topic.name, count);
+    throw new Error('OpenAI client is not configured');
   }
 
   const { system, user } = buildPostPromptForTopic(topic, count);
@@ -30,7 +30,7 @@ async function generatePostsForTopic(topic, count = 3) {
   const content = response.choices[0]?.message?.content;
   const parsed = safeParsePosts(content);
   if (!parsed.length) {
-    return buildFallback(topic.name, count);
+    throw new Error('OpenAI response did not include valid posts');
   }
   return parsed;
 }
@@ -45,7 +45,7 @@ async function generatePostFromTrend(topic, trend) {
   }
 
   if (!client) {
-    return buildFallbackPost(topic.name, cleanedTrend);
+    throw new Error('OpenAI client is not configured');
   }
 
   const { system, user } = buildTrendPostPrompt(topic, cleanedTrend);
@@ -63,7 +63,7 @@ async function generatePostFromTrend(topic, trend) {
   const content = response.choices[0]?.message?.content;
   const parsed = safeParsePost(content);
   if (!parsed) {
-    return buildFallbackPost(topic.name, cleanedTrend);
+    throw new Error('OpenAI response did not include a valid post');
   }
   return parsed;
 }
@@ -102,6 +102,7 @@ function buildTrendPostPrompt(topic, trend) {
     `Trend-Idee: ${trend}`,
     'Erstelle genau einen prägnanten X-Post auf Deutsch.',
     'Der Post soll eigenständig formuliert sein und nicht nur die Trend-Idee zitieren.',
+    'Maximal 260 Zeichen, keine Emojis, keine Hashtags.',
     'Antwort im JSON-Format: {"post": "..." }',
     propertyHints,
   ]
@@ -181,36 +182,6 @@ function safeParsePost(payload) {
     return null;
   }
 }
-
-function buildFallbackPost(topicName, trend) {
-  const leadIns = [
-    'Neuer Gesprächsstoff',
-    'Kurz und knapp',
-    'Das triggert gerade Diskussionen',
-    'Gerade heiß diskutiert',
-    'Ein Blick wert',
-  ];
-  const lead = leadIns[Math.floor(Math.random() * leadIns.length)];
-  return `${lead} in ${topicName}: ${trend}. Mein Take: kurz einordnen, klar positionieren, Mehrwert liefern.`;
-}
-
-function buildFallback(topicName, count) {
-  const variations = [];
-  for (let i = 0; i < count; i += 1) {
-    variations.push(
-      `Gedanke zu ${topicName}: ${sampleHooks[i % sampleHooks.length]} — kurz, konkret, umsetzbar.`
-    );
-  }
-  return variations;
-}
-
-const sampleHooks = [
-  'hier ein schneller Denkanstoß',
-  'kleiner Hebel, große Wirkung',
-  'oft übersehen wir das Einfache',
-  'probier es einmal und sieh den Effekt',
-  'streiche das Überflüssige und fokussiere aufs Wirksame',
-];
 
 module.exports = {
   generatePostsForTopic,
