@@ -148,6 +148,11 @@ app.post('/api/trends/post', async (req, res) => {
     });
     return res.json({ topic, post });
   } catch (err) {
+    console.error('[trends-post] generation failed', {
+      message: err.message,
+      status: err.status,
+      response: err.response,
+    });
     return res.status(500).json({ error: 'generation failed', detail: err.message });
   }
 });

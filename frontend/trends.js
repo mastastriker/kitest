@@ -127,7 +127,7 @@ function renderTrends(trends) {
         });
         const data = await res.json();
         if (!res.ok) {
-          throw new Error(data.error || 'Post-Erstellung fehlgeschlagen');
+          throw new Error(data.detail || data.error || 'Post-Erstellung fehlgeschlagen');
         }
         setStatus('Entwurf erstellt. Auf der Startseite verfügbar.');
       } catch (err) {
