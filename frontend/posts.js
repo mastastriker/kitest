@@ -53,7 +53,8 @@ async function updatePost(postId, text, button) {
   }
 }
 
-function formatPrompt(prompt) {
+function formatPrompt(promptText, prompt) {
+  if (promptText) return promptText;
   if (!prompt) return 'Kein Prompt verfügbar.';
   const system = prompt.system || '';
   const user = prompt.user || '';
@@ -96,11 +97,11 @@ function renderPosts() {
       `;
 
       const text = card.querySelector('.post-text');
-      text.textContent = post.text || '';
+      text.textContent = post.generatedText || post.text || '';
 
       const actions = card.querySelector('.post-actions');
       const promptBlock = card.querySelector('.code-block');
-      promptBlock.textContent = formatPrompt(post.prompt);
+      promptBlock.textContent = formatPrompt(post.promptText, post.prompt);
       const editBtn = document.createElement('button');
       editBtn.type = 'button';
       editBtn.className = 'ghost';

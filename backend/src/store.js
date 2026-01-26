@@ -95,10 +95,14 @@ function addPosts(topicId, entries, defaults = {}) {
     const mergedMeta =
       typeof entry === 'string' ? defaults : { ...defaults, ...(entry?.meta || {}) };
     const safeText = String(text || '').trim();
+    const generatedText = String(mergedMeta?.generatedText || safeText || '').trim();
+    const promptText = mergedMeta?.promptText ? String(mergedMeta.promptText).trim() : undefined;
     return {
       id: generateId('post'),
       topicId,
       text: safeText,
+      generatedText,
+      promptText,
       createdAt: new Date().toISOString(),
       source: mergedMeta?.source || 'openai',
       prompt: mergedMeta?.prompt,
@@ -185,6 +189,7 @@ function updatePost(postId, text) {
     return null;
   }
   store.posts[index].text = trimmed;
+  store.posts[index].generatedText = trimmed;
   writeStore(store);
   return store.posts[index];
 }

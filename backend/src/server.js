@@ -31,6 +31,13 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(FRONTEND_DIR));
 
+function formatPromptText(prompt) {
+  if (!prompt) return '';
+  const system = prompt.system || '';
+  const user = prompt.user || '';
+  return `System:\n${system}\n\nUser:\n${user}`.trim();
+}
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
@@ -88,7 +95,10 @@ app.post('/api/topics/:id/generate', async (req, res) => {
   try {
     const generated = await generatePostsForTopic(topic, count);
     const prompt = buildPostPromptForTopic(topic, count);
-    const saved = addPosts(topic.id, generated, { prompt });
+    const saved = addPosts(topic.id, generated, {
+      prompt,
+      promptText: formatPromptText(prompt),
+    });
     return res.json({ topic, posts: saved });
   } catch (err) {
     return res.status(500).json({ error: 'generation failed', detail: err.message });
@@ -125,7 +135,11 @@ app.post('/api/trends/post', async (req, res) => {
   try {
     const text = await generatePostFromTrend(topic, trend);
     const prompt = buildTrendPostPrompt(topic, trend);
-    const [post] = addPosts(topic.id, [text], { prompt });
+    const [post] = addPosts(topic.id, [text], {
+      prompt,
+      promptText: formatPromptText(prompt),
+      generatedText: text,
+    });
     return res.json({ topic, post });
   } catch (err) {
     return res.status(500).json({ error: 'generation failed', detail: err.message });
@@ -139,6 +153,8 @@ app.get('/api/posts', (req, res) => {
       ...p,
       topicName: topic.name,
       prompt: p.prompt || buildPostPromptForTopic(topic, 1),
+      promptText: p.promptText || formatPromptText(p.prompt || buildPostPromptForTopic(topic, 1)),
+      generatedText: p.generatedText || p.text,
     }))
   );
   res.json({ posts: allPosts });
