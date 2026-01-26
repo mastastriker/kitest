@@ -8,6 +8,8 @@ const state = {
   topics: [],
 };
 
+const STORAGE_KEY = 'trendResults';
+
 function setStatus(message) {
   trendStatus.textContent = message;
 }
@@ -25,6 +27,41 @@ function renderPrompt(prompt) {
   const system = prompt.system || '';
   const user = prompt.user || '';
   trendPrompt.textContent = `System:\n${system}\n\nUser:\n${user}`.trim();
+}
+
+function saveResults(payload) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  } catch (err) {
+    // ignore storage errors
+  }
+}
+
+function loadResults() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (err) {
+    return null;
+  }
+}
+
+function restoreSelection(saved) {
+  if (!saved) return;
+  if (saved.topicId) {
+    topicSelect.value = saved.topicId;
+  }
+  if (saved.mode) {
+    const modeInput = trendForm.querySelector(`input[name="trend-mode"][value="${saved.mode}"]`);
+    if (modeInput) modeInput.checked = true;
+  }
+}
+
+function restoreResults(saved) {
+  if (!saved) return;
+  renderTrends(saved.trends || []);
+  renderPrompt(saved.prompt);
 }
 
 async function loadTopics() {
@@ -45,6 +82,9 @@ async function loadTopics() {
       topicSelect.appendChild(option);
     });
     setStatus('');
+    const saved = loadResults();
+    restoreSelection(saved);
+    restoreResults(saved);
   } catch (err) {
     setStatus(`Fehler beim Laden: ${err.message}`);
   }
@@ -128,6 +168,12 @@ trendForm.addEventListener('submit', async (event) => {
     }
     renderTrends(data.trends || []);
     renderPrompt(data.prompt);
+    saveResults({
+      topicId,
+      mode,
+      trends: data.trends || [],
+      prompt: data.prompt,
+    });
     setStatus('');
   } catch (err) {
     setStatus(`Fehler: ${err.message}`);
