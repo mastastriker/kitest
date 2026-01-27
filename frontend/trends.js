@@ -109,8 +109,18 @@ function renderTrends(trends) {
   }
   trends.forEach((trend) => {
     const item = document.createElement('li');
+    const info = document.createElement('div');
+    info.className = 'trend-info';
     const text = document.createElement('span');
     text.textContent = trend;
+    const link = document.createElement('a');
+    link.className = 'trend-link';
+    link.href = `https://news.google.com/search?q=${encodeURIComponent(trend)}`;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = 'Passenden Link öffnen';
+    info.appendChild(text);
+    info.appendChild(link);
     const details = document.createElement('details');
     const summary = document.createElement('summary');
     summary.textContent = 'X-Post-Prompt anzeigen';
@@ -244,9 +254,12 @@ function renderTrends(trends) {
         button.disabled = false;
       }
     });
-    item.appendChild(text);
-    item.appendChild(details);
-    item.appendChild(button);
+    const actions = document.createElement('div');
+    actions.className = 'trend-actions';
+    actions.appendChild(details);
+    actions.appendChild(button);
+    item.appendChild(info);
+    item.appendChild(actions);
     trendList.appendChild(item);
   });
 }

@@ -523,6 +523,29 @@ button:disabled {
   gap: 12px;
 }
 
+.trend-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.trend-link {
+  color: var(--accent);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.trend-link:hover {
+  text-decoration: underline;
+}
+
+.trend-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-start;
+}
+
 .trend-list li button {
   white-space: nowrap;
 }
