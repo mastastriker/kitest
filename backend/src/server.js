@@ -11,10 +11,18 @@ const {
   updateTopic,
   deletePost,
   updatePost,
+  updatePostWithPrompt,
   deleteTopic,
 } = require('./store');
 const { getPostProperties } = require('./postProperties');
-const { generatePostsForTopic } = require('./chatgpt');
+const {
+  generatePostsForTopic,
+  generatePostFromTrend,
+  generatePostFromPrompt,
+  buildPostPromptForTopic,
+  buildTrendPostPrompt,
+} = require('./chatgpt');
+const { generateTrendsForTopic, MODE_MAP, clampCount, buildTrendPrompt } = require('./trends');
 const { parseFeed } = require('./news');
 
 const app = express();
@@ -24,6 +32,22 @@ const FRONTEND_DIR = path.join(__dirname, '..', '..', 'frontend');
 app.use(cors());
 app.use(express.json());
 app.use(express.static(FRONTEND_DIR));
+
+function formatPromptText(prompt) {
+  if (!prompt) return '';
+  const system = prompt.system || '';
+  const user = prompt.user || '';
+  return `System:\n${system}\n\nUser:\n${user}`.trim();
+}
+
+function parsePromptText(promptText) {
+  if (!promptText) return null;
+  const match = promptText.match(/^System:\n([\s\S]*?)\n\nUser:\n([\s\S]*)$/);
+  if (!match) {
+    return null;
+  }
+  return { system: match[1].trim(), user: match[2].trim() };
+}
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
@@ -81,17 +105,94 @@ app.post('/api/topics/:id/generate', async (req, res) => {
   const count = Number(req.body?.count) || 3;
   try {
     const generated = await generatePostsForTopic(topic, count);
-    const saved = addPosts(topic.id, generated);
+    const prompt = buildPostPromptForTopic(topic, count);
+    const saved = addPosts(topic.id, generated, {
+      prompt,
+      promptText: formatPromptText(prompt),
+      generatedPost: '',
+    });
     return res.json({ topic, posts: saved });
   } catch (err) {
     return res.status(500).json({ error: 'generation failed', detail: err.message });
   }
 });
 
+app.post('/api/trends', async (req, res) => {
+  const { topicId, mode, count } = req.body || {};
+  const topic = getTopic(topicId);
+  if (!topic) {
+    return res.status(404).json({ error: 'topic not found' });
+  }
+  if (!MODE_MAP[mode]) {
+    return res.status(400).json({ error: 'mode is invalid' });
+  }
+  try {
+    const trends = await generateTrendsForTopic(topic.name, mode, clampCount(count));
+    const prompt = buildTrendPrompt(topic.name, MODE_MAP[mode], clampCount(count));
+    return res.json({ topic, mode, trends, prompt });
+  } catch (err) {
+    console.error('[trends] generation failed', {
+      message: err.message,
+      status: err.status,
+      response: err.response,
+    });
+    return res.status(500).json({ error: 'generation failed', detail: err.message });
+  }
+});
+
+app.post('/api/trends/post', async (req, res) => {
+  const { topicId, trend } = req.body || {};
+  const topic = getTopic(topicId);
+  if (!topic) {
+    return res.status(404).json({ error: 'topic not found' });
+  }
+  if (!trend) {
+    return res.status(400).json({ error: 'trend is required' });
+  }
+  try {
+    const text = await generatePostFromTrend(topic, trend);
+    const prompt = buildTrendPostPrompt(topic, trend);
+    const [post] = addPosts(topic.id, [text], {
+      prompt,
+      promptText: formatPromptText(prompt),
+      generatedPost: text,
+    });
+    return res.json({ topic, post });
+  } catch (err) {
+    console.error('[trends-post] generation failed', {
+      message: err.message,
+      status: err.status,
+      response: err.response,
+    });
+    return res.status(500).json({ error: 'generation failed', detail: err.message });
+  }
+});
+
+app.post('/api/trends/post/prompt', (req, res) => {
+  const { topicId, trend } = req.body || {};
+  const topic = getTopic(topicId);
+  if (!topic) {
+    return res.status(404).json({ error: 'topic not found' });
+  }
+  if (!trend) {
+    return res.status(400).json({ error: 'trend is required' });
+  }
+  const prompt = buildTrendPostPrompt(topic, trend);
+  return res.json({ prompt, prompt_text: formatPromptText(prompt) });
+});
+
 app.get('/api/posts', (req, res) => {
   const topics = getTopics();
   const allPosts = topics.flatMap((topic) =>
-    getPostsForTopic(topic.id).map((p) => ({ ...p, topicName: topic.name }))
+    getPostsForTopic(topic.id).map((p) => ({
+      ...p,
+      topicName: topic.name,
+      prompt: p.prompt || buildPostPromptForTopic(topic, 1),
+      promptText: p.prompt_text || formatPromptText(p.prompt || buildPostPromptForTopic(topic, 1)),
+      generatedPost: p.generated_post || p.text,
+      prompt_text: p.prompt_text || formatPromptText(p.prompt || buildPostPromptForTopic(topic, 1)),
+      generated_post: p.generated_post || p.text,
+    }))
   );
   res.json({ posts: allPosts });
 });
@@ -149,6 +250,32 @@ app.put('/api/posts/:id', (req, res) => {
     return res.json({ post: updated });
   } catch (err) {
     return res.status(400).json({ error: err.message });
+  }
+});
+
+app.post('/api/posts/:id/regenerate', async (req, res) => {
+  const { prompt_text: promptText } = req.body || {};
+  const parsed = parsePromptText(promptText);
+  if (!parsed) {
+    return res.status(400).json({ error: 'prompt_text is invalid' });
+  }
+  try {
+    const text = await generatePostFromPrompt(parsed.system, parsed.user);
+    const updated = updatePostWithPrompt(req.params.id, text, promptText, {
+      system: parsed.system,
+      user: parsed.user,
+    });
+    if (!updated) {
+      return res.status(404).json({ error: 'post not found' });
+    }
+    return res.json({ post: updated });
+  } catch (err) {
+    console.error('[posts-regenerate] generation failed', {
+      message: err.message,
+      status: err.status,
+      response: err.response,
+    });
+    return res.status(500).json({ error: 'generation failed', detail: err.message });
   }
 });
 

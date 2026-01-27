@@ -88,18 +88,29 @@ function addTopic(name) {
   return topic;
 }
 
-function addPosts(topicId, texts) {
+function addPosts(topicId, entries, defaults = {}) {
   const store = readStore();
-  const entries = texts.map((text) => ({
-    id: generateId('post'),
-    topicId,
-    text: text.trim(),
-    createdAt: new Date().toISOString(),
-    source: 'openai',
-  }));
-  store.posts.push(...entries);
+  const prepared = entries.map((entry) => {
+    const text = typeof entry === 'string' ? entry : entry?.text;
+    const mergedMeta =
+      typeof entry === 'string' ? defaults : { ...defaults, ...(entry?.meta || {}) };
+    const safeText = String(text || '').trim();
+    const generatedPost = String(mergedMeta?.generatedPost || safeText || '').trim();
+    const promptText = mergedMeta?.promptText ? String(mergedMeta.promptText).trim() : undefined;
+    return {
+      id: generateId('post'),
+      topicId,
+      text: safeText,
+      generated_post: generatedPost,
+      prompt_text: promptText,
+      createdAt: new Date().toISOString(),
+      source: mergedMeta?.source || 'openai',
+      prompt: mergedMeta?.prompt,
+    };
+  });
+  store.posts.push(...prepared);
   writeStore(store);
-  return entries;
+  return prepared;
 }
 
 function getPostsForTopic(topicId) {
@@ -178,6 +189,29 @@ function updatePost(postId, text) {
     return null;
   }
   store.posts[index].text = trimmed;
+  store.posts[index].generated_post = trimmed;
+  writeStore(store);
+  return store.posts[index];
+}
+
+function updatePostWithPrompt(postId, text, promptText, prompt) {
+  const trimmed = text?.trim();
+  if (!trimmed) {
+    throw new Error('Post text is required');
+  }
+  const store = readStore();
+  const index = store.posts.findIndex((p) => p.id === postId);
+  if (index === -1) {
+    return null;
+  }
+  store.posts[index].text = trimmed;
+  store.posts[index].generated_post = trimmed;
+  if (promptText) {
+    store.posts[index].prompt_text = String(promptText).trim();
+  }
+  if (prompt) {
+    store.posts[index].prompt = prompt;
+  }
   writeStore(store);
   return store.posts[index];
 }
@@ -191,5 +225,6 @@ module.exports = {
   updateTopic,
   deletePost,
   updatePost,
+  updatePostWithPrompt,
   deleteTopic,
 };
