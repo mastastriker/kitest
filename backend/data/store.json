@@ -31,15 +31,6 @@
         "story",
         "curiosity-gap"
       ]
-    },
-    {
-      "id": "topic_mkq0bj7b_s75e",
-      "name": "Männer",
-      "prompts": {
-        "system": "Du schreibst prägnante, ansprechende X/Twitter-Posts auf Deutsch. Maximal 260 Zeichen, keine Emojis oder Hashtags außer wenn wirklich nötig. Liefere nur JSON: {\"posts\":[{\"text\":\"...\"}]} ohne zusätzlichen Text.",
-        "user": "Thema: {{topic}}\nErzeuge {{count}} unterschiedliche Posts.\nJeder Post soll selbsterklärend und direkt postbar sein."
-      },
-      "createdAt": "2026-01-22T22:11:55.512Z"
     }
   ],
   "posts": []
