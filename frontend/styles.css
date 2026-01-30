@@ -493,6 +493,72 @@ button:disabled {
   color: var(--danger);
 }
 
+.note-list {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.tab-bar {
+  display: flex;
+  gap: 10px;
+  margin: 0 0 16px;
+  flex-wrap: wrap;
+}
+
+.tab-button {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.tab-button.is-active {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.drafts-list {
+  display: grid;
+  gap: 12px;
+}
+
+.draft-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  background: var(--surface);
+  display: grid;
+  gap: 10px;
+}
+
+.draft-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.draft-text {
+  font-size: 15px;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.draft-source a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.is-hidden {
+  display: none;
+}
+
 .feed-list {
   display: grid;
   gap: 10px;

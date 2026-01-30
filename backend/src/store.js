@@ -12,7 +12,7 @@ function ensureStoreFile() {
     fs.mkdirSync(dir, { recursive: true });
   }
   if (!fs.existsSync(STORE_PATH)) {
-    const initial = { topics: [], posts: [] };
+    const initial = { topics: [], posts: [], drafts: [] };
     fs.writeFileSync(STORE_PATH, JSON.stringify(initial, null, 2), ENCODING);
   }
 }
@@ -20,7 +20,24 @@ function ensureStoreFile() {
 function readStore() {
   ensureStoreFile();
   const raw = fs.readFileSync(STORE_PATH, ENCODING);
-  return JSON.parse(raw);
+  const parsed = JSON.parse(raw);
+  let changed = false;
+  if (!Array.isArray(parsed.topics)) {
+    parsed.topics = [];
+    changed = true;
+  }
+  if (!Array.isArray(parsed.posts)) {
+    parsed.posts = [];
+    changed = true;
+  }
+  if (!Array.isArray(parsed.drafts)) {
+    parsed.drafts = [];
+    changed = true;
+  }
+  if (changed) {
+    writeStore(parsed);
+  }
+  return parsed;
 }
 
 function writeStore(data) {
@@ -216,6 +233,75 @@ function updatePostWithPrompt(postId, text, promptText, prompt) {
   return store.posts[index];
 }
 
+function getPostDrafts(filters = {}) {
+  const store = readStore();
+  const { theme, status } = filters;
+  return store.drafts.filter((draft) => {
+    if (theme && draft.theme !== theme) return false;
+    if (status && draft.status !== status) return false;
+    return true;
+  });
+}
+
+function addPostDraft(draft) {
+  const store = readStore();
+  const now = new Date().toISOString();
+  const created = {
+    id: generateId('draft'),
+    theme: draft.theme,
+    content: draft.content,
+    status: draft.status || 'generated',
+    source_type: draft.source_type,
+    source_ref: draft.source_ref || null,
+    created_at: now,
+    approved_at: draft.approved_at || null,
+  };
+  store.drafts.push(created);
+  writeStore(store);
+  return created;
+}
+
+function updatePostDraft(draftId, updates = {}) {
+  const store = readStore();
+  const index = store.drafts.findIndex((draft) => draft.id === draftId);
+  if (index === -1) {
+    return null;
+  }
+  const draft = store.drafts[index];
+  if (typeof updates.content === 'string') {
+    const trimmed = updates.content.trim();
+    if (!trimmed) {
+      throw new Error('Draft content is required');
+    }
+    draft.content = trimmed;
+  }
+  if (typeof updates.status === 'string') {
+    draft.status = updates.status;
+  }
+  if (Object.prototype.hasOwnProperty.call(updates, 'approved_at')) {
+    draft.approved_at = updates.approved_at;
+  }
+  store.drafts[index] = draft;
+  writeStore(store);
+  return draft;
+}
+
+function updatePostDraftStatus(draftId, status) {
+  const store = readStore();
+  const index = store.drafts.findIndex((draft) => draft.id === draftId);
+  if (index === -1) {
+    return null;
+  }
+  const draft = store.drafts[index];
+  draft.status = status;
+  if (status === 'approved') {
+    draft.approved_at = new Date().toISOString();
+  }
+  store.drafts[index] = draft;
+  writeStore(store);
+  return draft;
+}
+
 module.exports = {
   getTopics,
   getTopic,
@@ -227,4 +313,8 @@ module.exports = {
   updatePost,
   updatePostWithPrompt,
   deleteTopic,
+  getPostDrafts,
+  addPostDraft,
+  updatePostDraft,
+  updatePostDraftStatus,
 };

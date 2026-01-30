@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Entwürfe &amp; Freigabe</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="theme-toggle">
+      <span>Dark Mode</span>
+      <label class="switch">
+        <input id="theme-toggle" type="checkbox" />
+        <span class="slider"></span>
+      </label>
+    </div>
+    <main class="page">
+      <nav class="primary-nav" aria-label="Hauptnavigation">
+        <a class="nav-home" href="index.html" aria-label="Post Generator">🏠</a>
+        <a href="index.html">Post Generator</a>
+        <a href="drafts.html" class="is-active" aria-current="page"
+          >Entwürfe &amp; Freigabe</a
+        >
+        <a href="posts.html">Posts Übersicht</a>
+        <a href="news.html">News</a>
+      </nav>
+      <header>
+        <h1>Entwürfe &amp; Freigabe</h1>
+        <p class="lede">Verwalte generierte Drafts, gib sie frei oder verwerfe sie.</p>
+      </header>
+
+      <div class="tab-bar">
+        <button class="tab-button is-active" type="button" data-tab="generated">
+          Entwürfe
+        </button>
+        <button class="tab-button" type="button" data-tab="approved">Freigegeben</button>
+        <button class="tab-button" type="button" data-tab="archived">Archiv</button>
+      </div>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2 id="drafts-heading">Entwürfe</h2>
+          <span id="drafts-count" class="badge">0</span>
+        </div>
+        <div id="drafts-list" class="drafts-list"></div>
+      </section>
+    </main>
+    <script src="theme.js"></script>
+    <script src="drafts.js"></script>
+  </body>
+</html>

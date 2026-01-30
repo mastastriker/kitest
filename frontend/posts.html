@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Entwürfe Übersicht</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="theme-toggle">
+      <span>Dark Mode</span>
+      <label class="switch">
+        <input id="theme-toggle" type="checkbox" />
+        <span class="slider"></span>
+      </label>
+    </div>
+    <main class="page">
+      <nav class="primary-nav" aria-label="Hauptnavigation">
+        <a class="nav-home" href="index.html" aria-label="Post Generator">🏠</a>
+        <a href="index.html">Post Generator</a>
+        <a href="drafts.html">Entwürfe &amp; Freigabe</a>
+        <a href="posts.html" class="is-active" aria-current="page">Posts Übersicht</a>
+        <a href="news.html">News</a>
+      </nav>
+      <header>
+        <h1>Entwürfe</h1>
+        <p class="lede">Alle erzeugten X-Post-Entwürfe, gruppiert nach Thema.</p>
+      </header>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Entwürfe nach Thema</h2>
+        </div>
+        <div id="posts" class="posts-overview"></div>
+      </section>
+    </main>
+    <script src="theme.js"></script>
+    <script src="posts.js"></script>
+  </body>
+</html>

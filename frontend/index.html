@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>KI X-Post Generator</title>
+    <title>Post Generator</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -16,24 +16,60 @@
     </div>
     <main class="page">
       <nav class="primary-nav" aria-label="Hauptnavigation">
-        <a class="nav-home is-active" href="index.html" aria-current="page" aria-label="Home">🏠</a>
-        <a href="prompts.html">Themen &amp; Prompts</a>
+        <a class="nav-home is-active" href="index.html" aria-current="page" aria-label="Post Generator"
+          >🏠</a
+        >
+        <a href="index.html" class="is-active" aria-current="page">Post Generator</a>
+        <a href="drafts.html">Entwürfe &amp; Freigabe</a>
+        <a href="posts.html">Posts Übersicht</a>
         <a href="news.html">News</a>
-        <a href="trends.html">Trends</a>
       </nav>
       <header>
-        <h1>Entwürfe</h1>
-        <p class="lede">Alle erzeugten X-Post-Entwürfe, gruppiert nach Thema.</p>
+        <h1>Post Generator</h1>
+        <p class="lede">Erzeuge neue X-Post-Entwürfe aus RSS-Quellen oder manuell ausgewählten News.</p>
       </header>
 
       <section class="panel">
         <div class="panel-head">
-          <h2>Entwürfe nach Thema</h2>
+          <h2>Generator</h2>
+          <span id="generator-status" class="badge">Bereit</span>
         </div>
-        <div id="posts" class="posts-overview"></div>
+        <form id="generator-form" class="stack">
+          <label>
+            Thema
+            <select id="generator-theme"></select>
+          </label>
+          <label>
+            Modus
+            <div class="inline-actions">
+              <label class="inline-toggle">
+                <input type="radio" name="generator-mode" value="auto" checked />
+                Automatisch (RSS priorisiert)
+              </label>
+              <label class="inline-toggle">
+                <input type="radio" name="generator-mode" value="manual" />
+                Manuell (RSS-Artikel wählen)
+              </label>
+            </div>
+          </label>
+          <div id="rss-summary" class="muted small"></div>
+          <div id="manual-picker" class="stack"></div>
+          <button type="submit">X-Post generieren</button>
+        </form>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Hinweise</h2>
+        </div>
+        <ul class="note-list">
+          <li>Automatisch nutzt aktive RSS-Feeds aus dem News-Bereich.</li>
+          <li>Manuell erlaubt die Auswahl gespeicherter RSS-News.</li>
+          <li>Jeder Draft benötigt eine manuelle Freigabe.</li>
+        </ul>
       </section>
     </main>
     <script src="theme.js"></script>
-    <script src="posts.js"></script>
+    <script src="post-generator.js"></script>
   </body>
 </html>
