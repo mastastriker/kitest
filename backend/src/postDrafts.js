@@ -13,7 +13,7 @@ const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 const client = apiKey ? new OpenAI({ apiKey }) : null;
 
 const GENERATED_LIMIT = 10;
-const DAILY_LIMIT = 5;
+const DAILY_LIMIT = 100;
 
 function ensureClient() {
   if (!client) {
