@@ -82,7 +82,10 @@ async function runRewriteStage(theme, source, idea, propertyHints, requireLink) 
   if (!parsed) {
     throw new Error('OpenAI response did not include a valid post');
   }
-  return enforceLimits(parsed, source.link, requireLink);
+  if (requireLink) {
+    validatePostLength(parsed, source.link);
+  }
+  return parsed;
 }
 
 function buildAnalysisPrompt(theme, source, propertyHints) {
@@ -137,6 +140,7 @@ function buildRewritePrompt(theme, source, idea, propertyHints, requireLink) {
     'Keine Gedankenstriche, keine Emojis, keine Aufzählungen.',
     'Keine Meta-Sprache und keine Floskeln.',
     'Keine abstrakten Verben wie "ignorieren" oder "thematisieren".',
+    'Kürze inhaltlich und beende Sätze sauber, niemals technisch abschneiden.',
     'Antworte nur mit JSON: {"post":"..."}',
   ].join(' ');
   const user = [
@@ -148,8 +152,14 @@ function buildRewritePrompt(theme, source, idea, propertyHints, requireLink) {
     `Rohfassung: ${idea.rough}`,
     propertyHints,
     requireLink
-      ? 'Der Post muss den Link enthalten und sich konkret auf Quelle, Akteur oder Ereignis beziehen.'
+      ? 'Der Post muss den Link enthalten und sich konkret auf Quelle, Akteur oder Ereignisse beziehen.'
       : 'Beziehe dich konkret auf Akteure oder Ereignisse.',
+    requireLink
+      ? 'Plane den Textteil vor dem Link auf maximal 256 Zeichen. Der Link steht in einer eigenen Zeile am Ende.'
+      : 'Halte den gesamten Post unter 280 Zeichen.',
+    requireLink
+      ? 'Der Link darf nicht gekürzt werden und muss exakt so stehen wie angegeben.'
+      : '',
     'Kein Gedankenstrich, keine Emojis, keine Aufzählungen.',
     'Nur JSON.',
   ]
@@ -210,36 +220,23 @@ function parseFinal(payload) {
   }
 }
 
-function enforceLimits(post, link, requireLink) {
-  let text = String(post || '').trim();
-  if (requireLink && link) {
-    if (!text.includes(link)) {
-      text = `${text} ${link}`.trim();
-    }
-    text = trimToLimitWithLink(text, link, 280);
+function validatePostLength(post, link) {
+  const text = String(post || '').trim();
+  if (!link) {
+    throw new Error('Post link is required');
   }
-  if (text.length > 280) {
-    text = text.slice(0, 280).trim();
+  const parts = text.split('\n');
+  if (parts.length < 2) {
+    throw new Error('Post must place the link on a new line');
   }
-  return text;
-}
-
-function trimToLimitWithLink(text, link, limit) {
-  const normalized = text.trim();
-  if (normalized.length <= limit) {
-    return normalized;
+  const linkLine = parts[parts.length - 1].trim();
+  if (linkLine !== link) {
+    throw new Error('Post link must match the source link');
   }
-  const linkIndex = normalized.indexOf(link);
-  if (linkIndex === -1) {
-    return normalized.slice(0, limit).trim();
+  const textPart = parts.slice(0, -1).join('\n').trim();
+  if (textPart.length > 256) {
+    throw new Error('Post text exceeds 256 characters before link');
   }
-  const linkPart = normalized.slice(linkIndex).trim();
-  const available = limit - linkPart.length - 1;
-  if (available <= 0) {
-    return linkPart.slice(0, limit);
-  }
-  const prefix = normalized.slice(0, linkIndex).trim().slice(0, available).trim();
-  return `${prefix} ${linkPart}`.trim();
 }
 
 module.exports = {
