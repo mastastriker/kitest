@@ -20,6 +20,7 @@ const {
   generateTrendSignal,
 } = require('./chatgpt');
 const { fetchFeed } = require('./news');
+const { decideDraftSource } = require('./articleSelector');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -28,8 +29,6 @@ const FRONTEND_DIR = path.join(__dirname, '..', '..', 'frontend');
 app.use(cors());
 app.use(express.json());
 app.use(express.static(FRONTEND_DIR));
-
-const clampText = (value = '') => String(value || '').toLowerCase();
 
 async function fetchArticlesForFeeds(feeds) {
   const results = await Promise.all(
@@ -42,6 +41,8 @@ async function fetchArticlesForFeeds(feeds) {
           summary: item.summary,
           publishedAt: item.publishedAt,
           source: parsed.feed?.title || feed.name || feed.url,
+          feedName: feed.name || parsed.feed?.title || feed.url,
+          feedUrl: feed.url,
         }));
       } catch (err) {
         return [];
@@ -49,26 +50,6 @@ async function fetchArticlesForFeeds(feeds) {
     })
   );
   return results.flat().filter((item) => item.link);
-}
-
-function selectArticle(items, trends) {
-  if (!items.length) return null;
-  const trendTerms = trends.map((trend) => clampText(trend)).filter(Boolean);
-  const scored = items.map((item) => {
-    const text = clampText(`${item.title || ''} ${item.summary || ''}`);
-    const score = trendTerms.reduce((acc, term) => (text.includes(term) ? acc + 1 : acc), 0);
-    const published = item.publishedAt ? Date.parse(item.publishedAt) : 0;
-    return { item, score, published };
-  });
-  const hasMatches = scored.some((entry) => entry.score > 0);
-  const filtered = hasMatches ? scored.filter((entry) => entry.score > 0) : scored;
-  filtered.sort((a, b) => {
-    if (b.score !== a.score) {
-      return b.score - a.score;
-    }
-    return b.published - a.published;
-  });
-  return filtered[0]?.item || null;
 }
 
 app.get('/api/health', (req, res) => {
@@ -152,11 +133,11 @@ app.post('/api/drafts/generate', async (req, res) => {
     const relevantFeeds = feedList.filter(
       (feed) => feed.active && feed.topicId === topic.id && feed.url
     );
-    const trendSignals = await generateTrendSignal(topic.name, 7);
     const items = await fetchArticlesForFeeds(relevantFeeds);
-    const selected = selectArticle(items, trendSignals);
+    const decision = decideDraftSource(items);
 
-    if (!selected) {
+    if (decision.sourceType === 'trend') {
+      const trendSignals = await generateTrendSignal(topic.name, 7);
       const fallbackTrend = trendSignals[0] || `Trend rund um ${topic.name}`;
       const content = await generateDraftFromTrend(topic.name, fallbackTrend, styleModule);
       const draft = addDraft({
@@ -165,10 +146,12 @@ app.post('/api/drafts/generate', async (req, res) => {
         content,
         source_type: 'trend',
         source_ref: fallbackTrend,
+        trend_signal: fallbackTrend,
       });
       return res.json({ draft, usedFallback: true });
     }
 
+    const selected = decision.article;
     const content = await generateDraftFromArticle(topic.name, selected, styleModule);
     const draft = addDraft({
       theme: topic.name,
@@ -176,6 +159,9 @@ app.post('/api/drafts/generate', async (req, res) => {
       content,
       source_type: 'rss',
       source_ref: selected.link,
+      source_feed_name: selected.feedName,
+      source_feed_url: selected.feedUrl,
+      source_article_url: selected.link,
     });
     return res.json({ draft, usedFallback: false });
   } catch (err) {

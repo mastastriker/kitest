@@ -76,6 +76,10 @@ function normalizeStore(store) {
           status: 'generated',
           source_type: 'trend',
           source_ref: 'Legacy Import',
+          source_feed_name: null,
+          source_feed_url: null,
+          source_article_url: null,
+          trend_signal: 'Legacy Import',
           created_at: post.createdAt || new Date().toISOString(),
           approved_at: null,
         };
@@ -86,6 +90,13 @@ function normalizeStore(store) {
       changed = true;
     }
   }
+  store.drafts = store.drafts.map((draft) => ({
+    ...draft,
+    source_feed_name: draft.source_feed_name ?? null,
+    source_feed_url: draft.source_feed_url ?? null,
+    source_article_url: draft.source_article_url ?? null,
+    trend_signal: draft.trend_signal ?? null,
+  }));
   if (store.posts) {
     delete store.posts;
     changed = true;
@@ -133,6 +144,10 @@ function addDraft(draft) {
     status: 'generated',
     source_type: draft.source_type,
     source_ref: draft.source_ref,
+    source_feed_name: draft.source_feed_name || null,
+    source_feed_url: draft.source_feed_url || null,
+    source_article_url: draft.source_article_url || null,
+    trend_signal: draft.trend_signal || null,
     created_at: new Date().toISOString(),
     approved_at: null,
   };

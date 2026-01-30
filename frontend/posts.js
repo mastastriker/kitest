@@ -105,7 +105,14 @@ function renderDrafts() {
       text.textContent = draft.content || '';
 
       const source = card.querySelector('.post-source');
-      source.textContent = draft.source_ref ? `Quelle: ${draft.source_ref}` : '';
+      if (draft.source_type === 'rss') {
+        const feedLabel = draft.source_feed_name || 'Unbekannter Feed';
+        source.textContent = `Quelle: RSS – ${feedLabel}`;
+      } else if (draft.source_type === 'trend') {
+        source.textContent = 'Quelle: Trend-Fallback';
+      } else {
+        source.textContent = draft.source_ref ? `Quelle: ${draft.source_ref}` : '';
+      }
 
       const actions = card.querySelector('.post-actions');
       if (draft.status === 'generated') {
