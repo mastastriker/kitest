@@ -24,6 +24,9 @@ const {
 } = require('./chatgpt');
 const { generateTrendsForTopic, MODE_MAP, clampCount, buildTrendPrompt } = require('./trends');
 const { parseFeed } = require('./news');
+const { getDraftThemes, getDraftTheme } = require('./draftConfig');
+const { generateDraft, approveDraft, discardDraft, editDraft, getDraftsForTheme } =
+  require('./postDrafts');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -195,6 +198,67 @@ app.get('/api/posts', (req, res) => {
     }))
   );
   res.json({ posts: allPosts });
+});
+
+app.get('/api/post-drafts/themes', (req, res) => {
+  res.json({ themes: getDraftThemes() });
+});
+
+app.get('/api/post-drafts', (req, res) => {
+  const { theme } = req.query || {};
+  if (theme && !getDraftTheme(theme)) {
+    return res.status(400).json({ error: 'theme is invalid' });
+  }
+  const drafts = theme
+    ? getDraftsForTheme(theme)
+    : getDraftsForTheme('crypto').concat(getDraftsForTheme('camping'));
+  drafts.sort((a, b) => Date.parse(b.created_at || '') - Date.parse(a.created_at || ''));
+  return res.json({ drafts });
+});
+
+app.post('/api/post-drafts/generate', async (req, res) => {
+  const { theme, mode, article, candidates } = req.body || {};
+  if (!theme || !getDraftTheme(theme)) {
+    return res.status(400).json({ error: 'theme is invalid' });
+  }
+  if (!['auto', 'manual'].includes(mode)) {
+    return res.status(400).json({ error: 'mode is invalid' });
+  }
+  try {
+    const draft = await generateDraft(theme, { mode, article, candidates });
+    return res.json({ draft });
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+app.post('/api/post-drafts/:id/approve', (req, res) => {
+  const draft = approveDraft(req.params.id);
+  if (!draft) {
+    return res.status(404).json({ error: 'draft not found' });
+  }
+  return res.json({ draft });
+});
+
+app.post('/api/post-drafts/:id/discard', (req, res) => {
+  const draft = discardDraft(req.params.id);
+  if (!draft) {
+    return res.status(404).json({ error: 'draft not found' });
+  }
+  return res.json({ draft });
+});
+
+app.put('/api/post-drafts/:id', (req, res) => {
+  const { content } = req.body || {};
+  try {
+    const draft = editDraft(req.params.id, content);
+    if (!draft) {
+      return res.status(404).json({ error: 'draft not found' });
+    }
+    return res.json({ draft });
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
 });
 
 app.get('/api/news/preview', async (req, res) => {

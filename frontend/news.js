@@ -217,6 +217,7 @@ const mergeNewsItems = (feeds) => {
       publishedAt: item.publishedAt,
       source: feed.source || feed.name,
       topicName: feed.topicName,
+      summary: item.summary,
     }))
   );
 
@@ -361,6 +362,7 @@ const saveTopic = (item) => {
       source: item.source,
       link: item.link,
       topicName: item.topicName,
+      summary: item.summary,
       savedAt: new Date().toISOString(),
     },
     ...topics,

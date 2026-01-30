@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Themen verwalten</title>
+    <title>Entwürfe Übersicht</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -19,35 +19,24 @@
         <a class="nav-home" href="index.html" aria-label="Post Generator">🏠</a>
         <a href="index.html">Post Generator</a>
         <a href="drafts.html">Entwürfe &amp; Freigabe</a>
-        <a href="posts.html">Posts Übersicht</a>
-        <a class="is-active" href="prompts.html" aria-current="page">Themen &amp; Prompts</a>
+        <a href="posts.html" class="is-active" aria-current="page">Posts Übersicht</a>
+        <a href="prompts.html">Themen &amp; Prompts</a>
         <a href="news.html">News</a>
         <a href="trends.html">Trends</a>
       </nav>
       <header>
-        <h1>Themen</h1>
-        <p class="lede">Themen verwalten und Post-Eigenschaften pro Thema festlegen.</p>
+        <h1>Entwürfe</h1>
+        <p class="lede">Alle erzeugten X-Post-Entwürfe, gruppiert nach Thema.</p>
       </header>
 
       <section class="panel">
-        <h2>Neues Thema</h2>
-        <form id="topic-form" class="stack">
-          <label>
-            Titel
-            <input type="text" id="topic-name" placeholder="z. B. Produktivität, AI News" required />
-          </label>
-          <button type="submit">Thema anlegen</button>
-        </form>
-      </section>
-
-      <section class="panel">
         <div class="panel-head">
-          <h2>Themen</h2>
+          <h2>Entwürfe nach Thema</h2>
         </div>
-        <div id="topics" class="topics"></div>
+        <div id="posts" class="posts-overview"></div>
       </section>
     </main>
     <script src="theme.js"></script>
-    <script src="prompts.js"></script>
+    <script src="posts.js"></script>
   </body>
 </html>
