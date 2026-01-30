@@ -1,15 +1,49 @@
 const { parseFeed } = require('./news');
 const { generateTrendsForTopic } = require('./trends');
-const { getThemeConfig } = require('./postDraftConfig');
 const { generateDraftFromSource } = require('./postDraftGenerator');
-const {
-  addPostDraft,
-  getDraftBySourceRef,
-  getDraftStatsByTheme,
-} = require('./store');
+const { addPostDraft, getDraftBySourceRef, getDraftStatsByTheme } = require('./store');
 
 const MAX_GENERATED_PER_THEME = 3;
 const MAX_PER_DAY = 5;
+
+const THEMES = {
+  crypto: {
+    id: 'crypto',
+    label: 'crypto',
+    rssFeeds: [
+      'https://cointelegraph.com/rss',
+      'https://www.coindesk.com/arc/outboundfeeds/rss/',
+    ],
+  },
+  camping: {
+    id: 'camping',
+    label: 'camping',
+    rssFeeds: ['https://www.outsideonline.com/feed/', 'https://www.backpacker.com/feed/'],
+  },
+};
+
+const STYLE_MODULES = [
+  {
+    id: 'open-question',
+    rule: 'Beende die Rohfassung mit einer offenen Frage.',
+  },
+  {
+    id: 'provocative',
+    rule: 'Formuliere eine provokante These, die klar Position bezieht.',
+  },
+  {
+    id: 'call-to-comment',
+    rule: 'Fordere am Ende direkt zu Kommentaren auf.',
+  },
+  {
+    id: 'link-first',
+    rule: 'Beginne den Textteil mit einem klaren Quellenbezug als Einstieg.',
+  },
+  {
+    id: 'link-last',
+    rule: 'Plane den Textteil so, dass die Quellenzeile am Ende logisch wirkt.',
+  },
+];
 
 async function generateDraft({ themeId, mode, manualItem }) {
   const theme = getThemeConfig(themeId);
@@ -57,26 +91,16 @@ function enforceLimits(themeId) {
 }
 
 async function generateFromRss(theme) {
-  const feeds = Array.isArray(theme.rssFeeds) ? theme.rssFeeds : [];
-  if (!feeds.length) {
+  const items = await fetchFeedItemsFromTheme(theme);
+  const item = selectEligibleItem(items);
+  if (!item) {
     return null;
   }
-  for (const feedUrl of feeds) {
-    const items = await fetchFeedItems(feedUrl);
-    const item = selectEligibleItem(items);
-    if (!item) {
-      continue;
-    }
-    const result = await generateFromItem(theme, item, {
-      sourceType: 'rss',
-      requireLink: true,
-      skipOnLowScore: true,
-    });
-    if (result) {
-      return result;
-    }
-  }
-  return null;
+  return generateFromItem(theme, item, {
+    sourceType: 'rss',
+    requireLink: true,
+    skipOnLowScore: true,
+  });
 }
 
 async function generateFromItem(theme, item, options) {
@@ -91,10 +115,11 @@ async function generateFromItem(theme, item, options) {
     publishedAt: item.publishedAt,
   };
   const generated = await generateDraftFromSource({
-    theme: theme.id,
+    theme: theme.label,
     source,
-    allowedProperties: theme.allowedProperties,
+    styleModule: selectStyleModule(),
     requireLink: options.requireLink,
+    sourceLine: options.sourceLine,
   });
   if (!generated.eligible) {
     if (options.skipOnLowScore) {
@@ -131,10 +156,11 @@ async function generateFromTrend(theme) {
       publishedAt: '',
     };
     const generated = await generateDraftFromSource({
-      theme: theme.id,
+      theme: theme.label,
       source,
-      allowedProperties: theme.allowedProperties,
+      styleModule: selectStyleModule(),
       requireLink: false,
+      sourceLine: `Quelle: ${trend}`,
     });
     if (!generated.eligible) {
       continue;
@@ -188,6 +214,30 @@ function selectEligibleItem(items = []) {
       return !getDraftBySourceRef(item.link);
     }) || null
   );
+}
+
+async function fetchFeedItemsFromTheme(theme) {
+  const feeds = Array.isArray(theme.rssFeeds) ? theme.rssFeeds : [];
+  if (!feeds.length) {
+    return [];
+  }
+  for (const feedUrl of feeds) {
+    const items = await fetchFeedItems(feedUrl);
+    if (items.length) {
+      return items;
+    }
+  }
+  return [];
+}
+
+function selectStyleModule() {
+  const index = Math.floor(Math.random() * STYLE_MODULES.length);
+  return STYLE_MODULES[index];
+}
+
+function getThemeConfig(themeId) {
+  const theme = THEMES[themeId];
+  return theme ? { ...theme } : null;
 }
 
 module.exports = {

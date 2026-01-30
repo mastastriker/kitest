@@ -2,7 +2,7 @@
   "topics": [
     {
       "id": "topic_mkonr8gk_j8fi",
-      "name": "Crypto/Defi",
+      "name": "Crypto",
       "createdAt": "2026-01-21T23:32:26.900Z",
       "prompts": {
         "system": "Du schreibst prägnante, ansprechende X/Twitter-Posts auf Deutsch. Maximal 260 Zeichen, keine Emojis oder Hashtags außer wenn wirklich nötig. Liefere nur JSON: {\"posts\":[{\"text\":\"...\"}]} ohne zusätzlichen Text.",
@@ -34,5 +34,77 @@
     }
   ],
   "posts": [],
+  "postDrafts": [
+    {
+      "id": "draft_ml158nw6_mqu0",
+      "theme": "crypto",
+      "content": "Kevin Warsh, Trumps Kandidat für den Fed-Vorsitz, sieht Bitcoin als Bedrohung. Er fordert einen digitalen Dollar. Damit zeigt die traditionelle Fina https://www.coindesk.com/policy/2026/01/30/who-is-kevin-warsh-here-is-what-trump-nominee-for-fed-chair-said-about-bitcoin-and-rates",
+      "status": "discarded",
+      "source_type": "rss",
+      "source_ref": "https://www.coindesk.com/policy/2026/01/30/who-is-kevin-warsh-here-is-what-trump-nominee-for-fed-chair-said-about-bitcoin-and-rates",
+      "created_at": "2026-01-30T17:15:07.638Z",
+      "approved_at": null
+    },
+    {
+      "id": "draft_ml15a1pw_q33k",
+      "theme": "crypto",
+      "content": "Nubank hat die bedingte Genehmigung für eine nationale Bank in den USA erhalten. Das klingt vielversprechend, aber ist es wirklich der r https://cointelegraph.com/news/nubank-conditional-us-approval-national-bank?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound",
+      "status": "discarded",
+      "source_type": "rss",
+      "source_ref": "https://cointelegraph.com/news/nubank-conditional-us-approval-national-bank?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound",
+      "created_at": "2026-01-30T17:16:12.212Z",
+      "approved_at": null
+    },
+    {
+      "id": "draft_ml15u8p3_y3q1",
+      "theme": "crypto",
+      "content": "Dezentrale GPU-Netzwerke könnten vielversprechend sein, doch die Realität zeigt ein anderes Bild. Hyperscaler dominieren mit Ressourcen und Erfahrung. Können kleine Netzwerke ernsthaft mithalten? Der Hype mag übertrieben sein. Was bleibt von der Vision übrig? \nhttps://cointelegraph.com/news/what-role-is-left-for-decentralized-gpu-networks-in-ai?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound",
+      "status": "discarded",
+      "source_type": "rss",
+      "source_ref": "https://cointelegraph.com/news/what-role-is-left-for-decentralized-gpu-networks-in-ai?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound",
+      "created_at": "2026-01-30T17:31:54.375Z",
+      "approved_at": null
+    },
+    {
+      "id": "draft_ml16c6qv_7qe2",
+      "theme": "topic_mkonr8gk_j8fi",
+      "content": "Ethereum 2.0 könnte die Krypto-Landschaft revolutionieren. Der Wechsel zu Proof-of-Stake verspricht höhere Skalierbarkeit und Energieeffizienz. Doch was passiert mit der bestehenden Infrastruktur? Welche Herausforderungen könnten auftreten? Diskutiert mit uns.",
+      "status": "discarded",
+      "source_type": "trend",
+      "source_ref": "trend:Ethereum 2.0 Update Diskussion",
+      "created_at": "2026-01-30T17:45:51.655Z",
+      "approved_at": null
+    },
+    {
+      "id": "draft_ml16cu37_0ngv",
+      "theme": "topic_mkonr8gk_j8fi",
+      "content": "Die Genehmigung eines Bitcoin ETFs könnte den Kryptomarkt entscheidend verändern. Institutionelle Investoren würden leichter einsteigen, was das Vertrauen in Kryptowährungen stärkt. Dies könnte zu weniger Volatilität und steigenden Preisen führen. Wie bereiten sich die Marktteilnehmer darauf vor?",
+      "status": "discarded",
+      "source_type": "trend",
+      "source_ref": "trend:Bitcoin ETF Genehmigung",
+      "created_at": "2026-01-30T17:46:21.907Z",
+      "approved_at": null
+    },
+    {
+      "id": "draft_ml16lpmt_sgty",
+      "theme": "topic_mkonr8gk_j8fi",
+      "content": "Die Krypto-Branche in den USA braucht dringend klare Regeln. Ohne diese droht Chaos. Eine transparente Regulierung kann Innovationen fördern und Vertrauen zurückgewinnen. Die USA müssen jetzt handeln, um nicht hinter anderen Nationen zurückzufallen. Quelle: Krypto-Regulierung in den USA",
+      "status": "generated",
+      "source_type": "trend",
+      "source_ref": "trend:Krypto-Regulierung in den USA",
+      "created_at": "2026-01-30T17:53:16.037Z",
+      "approved_at": null
+    },
+    {
+      "id": "draft_ml16mc2r_nxmn",
+      "theme": "topic_mkonr8gk_j8fi",
+      "content": "Ethereum 2.0 könnte die Blockchain-Technologie revolutionieren. Der Wechsel zu Proof of Stake senkt den Energieverbrauch und verbessert Skalierbarkeit und Sicherheit. Entwickler und Unternehmen könnten Ethereum bevorzugen. Welche Chancen und Herausforderungen seht ihr? Quelle: Ethereum 2.0 und seine Auswirkungen",
+      "status": "generated",
+      "source_type": "trend",
+      "source_ref": "trend:Ethereum 2.0 und seine Auswirkungen",
+      "created_at": "2026-01-30T17:53:45.123Z",
+      "approved_at": null
+    }
+  ]
   "postDrafts": []
 }
