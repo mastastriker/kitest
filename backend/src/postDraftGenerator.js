@@ -12,20 +12,25 @@ const SCORE_FIELDS = [
   'total_score',
 ];
 
-async function generateDraftFromSource({ theme, source, allowedTraits, requireLink }) {
+async function generateDraftFromSource({
+  theme,
+  source,
+  styleModule,
+  requireLink,
+  sourceLine,
+}) {
   if (!client) {
     throw new Error('OpenAI client is not configured');
   }
-  const propertyHints = buildPropertyHints(allowedProperties);
-  const analysis = await runAnalysis(theme, source, propertyHints);
+  const analysis = await runAnalysis(theme, source);
   if (!analysis || analysis.total_score < 9) {
     return {
       eligible: false,
       analysis,
     };
   }
-  const idea = await runIdeaStage(theme, source, analysis, propertyHints);
-  const finalText = await runRewriteStage(theme, source, idea, propertyHints, requireLink);
+  const idea = await runIdeaStage(theme, source, analysis, styleModule);
+  const finalText = await runRewriteStage(theme, source, idea, requireLink, sourceLine);
   return {
     eligible: true,
     analysis,
@@ -34,8 +39,8 @@ async function generateDraftFromSource({ theme, source, allowedTraits, requireLi
   };
 }
 
-async function runAnalysis(theme, source, propertyHints) {
-  const { system, user } = buildAnalysisPrompt(theme, source, propertyHints);
+async function runAnalysis(theme, source) {
+  const { system, user } = buildAnalysisPrompt(theme, source);
   const response = await client.chat.completions.create({
     model,
     messages: [
@@ -49,8 +54,8 @@ async function runAnalysis(theme, source, propertyHints) {
   return parseAnalysis(content);
 }
 
-async function runIdeaStage(theme, source, analysis, propertyHints) {
-  const { system, user } = buildIdeaPrompt(theme, source, analysis, propertyHints);
+async function runIdeaStage(theme, source, analysis, styleModule) {
+  const { system, user } = buildIdeaPrompt(theme, source, analysis, styleModule);
   const response = await client.chat.completions.create({
     model,
     messages: [
@@ -64,8 +69,8 @@ async function runIdeaStage(theme, source, analysis, propertyHints) {
   return parseIdea(content);
 }
 
-async function runRewriteStage(theme, source, idea, propertyHints, requireLink) {
-  const { system, user } = buildRewritePrompt(theme, source, idea, propertyHints, requireLink);
+async function runRewriteStage(theme, source, idea, requireLink, sourceLine) {
+  const { system, user } = buildRewritePrompt(theme, source, idea, requireLink, sourceLine);
   const response = await client.chat.completions.create({
     model,
     messages: [
@@ -88,7 +93,7 @@ async function runRewriteStage(theme, source, idea, propertyHints, requireLink) 
   return parsed;
 }
 
-function buildAnalysisPrompt(theme, source, propertyHints) {
+function buildAnalysisPrompt(theme, source) {
   const system = [
     'Du bist Redakteur für pointierte X-Posts.',
     'Lies Titel und Inhalt komplett.',
@@ -101,7 +106,6 @@ function buildAnalysisPrompt(theme, source, propertyHints) {
     `Inhalt: ${source.content}`,
     source.publishedAt ? `Veröffentlicht: ${source.publishedAt}` : '',
     source.link ? `Quelle: ${source.link}` : '',
-    propertyHints,
     'Antworte als JSON mit Feldern:',
     'timeliness_score (0-3), theme_fit_score (0-3), friction_score (0-3), novelty_score (0-3), discussion_score (0-3), total_score (0-15), core_claim (ein Satz).',
     'Nur JSON.',
@@ -111,7 +115,7 @@ function buildAnalysisPrompt(theme, source, propertyHints) {
   return { system, user };
 }
 
-function buildIdeaPrompt(theme, source, analysis, propertyHints) {
+function buildIdeaPrompt(theme, source, analysis, styleModule) {
   const system = [
     'Du entwickelst eine klare Post-Idee.',
     'Keine Zusammenfassung des Artikels.',
@@ -122,7 +126,7 @@ function buildIdeaPrompt(theme, source, analysis, propertyHints) {
     `Thema: ${theme}`,
     `Kernaussage: ${analysis.core_claim}`,
     `Quelle: ${source.title}`,
-    propertyHints,
+    buildStyleModuleHint(styleModule),
     'Erzeuge eine klare These, einen Blickwinkel und eine meinungsstarke Rohfassung.',
     'Format: {"thesis":"...","angle":"...","rough":"..."}',
   ]
@@ -131,7 +135,7 @@ function buildIdeaPrompt(theme, source, analysis, propertyHints) {
   return { system, user };
 }
 
-function buildRewritePrompt(theme, source, idea, requireLink) {
+function buildRewritePrompt(theme, source, idea, requireLink, sourceLine) {
   const system = [
     'Du schreibst den finalen X-Post.',
     'Klingt menschlich, direkt und glaubwürdig.',
@@ -151,7 +155,6 @@ function buildRewritePrompt(theme, source, idea, requireLink) {
     `These: ${idea.thesis}`,
     `Blickwinkel: ${idea.angle}`,
     `Rohfassung: ${idea.rough}`,
-    propertyHints,
     requireLink
       ? 'Der Post muss den Link enthalten und sich konkret auf Quelle, Akteur oder Ereignisse beziehen.'
       : 'Beziehe dich konkret auf Akteure oder Ereignisse.',
@@ -171,19 +174,11 @@ function buildRewritePrompt(theme, source, idea, requireLink) {
   return { system, user };
 }
 
-function buildPropertyHints(allowedProperties = []) {
-  if (!allowedProperties.length) {
+function buildStyleModuleHint(styleModule) {
+  if (!styleModule?.rule) {
     return '';
   }
-  const propertyMap = getPostPropertyMap();
-  const hints = allowedProperties
-    .map((id) => propertyMap[id]?.prompt)
-    .filter(Boolean)
-    .map((prompt) => `- ${prompt}`);
-  if (!hints.length) {
-    return '';
-  }
-  return `Erlaubte Eigenschaften:\n${hints.join('\n')}`;
+  return `Stil-Modul:\n- ${styleModule.rule}`;
 }
 
 function parseAnalysis(payload) {
