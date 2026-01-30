@@ -14,7 +14,13 @@ const SCORE_FIELDS = [
   'total_score',
 ];
 
-async function generateDraftFromSource({ theme, source, allowedTraits, requireLink }) {
+async function generateDraftFromSource({
+  theme,
+  source,
+  allowedTraits,
+  requireLink,
+  sourceLine,
+}) {
   if (!client) {
     throw new Error('OpenAI client is not configured');
   }
@@ -27,7 +33,7 @@ async function generateDraftFromSource({ theme, source, allowedTraits, requireLi
     };
   }
   const idea = await runIdeaStage(theme, source, analysis, traitHints);
-  const finalText = await runRewriteStage(theme, source, idea, requireLink);
+  const finalText = await runRewriteStage(theme, source, idea, requireLink, sourceLine);
   return {
     eligible: true,
     analysis,
@@ -66,8 +72,8 @@ async function runIdeaStage(theme, source, analysis, traitHints) {
   return parseIdea(content);
 }
 
-async function runRewriteStage(theme, source, idea, requireLink) {
-  const { system, user } = buildRewritePrompt(theme, source, idea, requireLink);
+async function runRewriteStage(theme, source, idea, requireLink, sourceLine) {
+  const { system, user } = buildRewritePrompt(theme, source, idea, requireLink, sourceLine);
   const response = await client.chat.completions.create({
     model,
     messages: [
@@ -84,6 +90,8 @@ async function runRewriteStage(theme, source, idea, requireLink) {
   }
   if (requireLink) {
     validatePostLength(parsed, source.link);
+  } else if (sourceLine) {
+    warnIfMissingSourceLine(parsed, sourceLine);
   }
   return parsed;
 }
@@ -130,7 +138,7 @@ function buildIdeaPrompt(theme, source, analysis, traitHints) {
   return { system, user };
 }
 
-function buildRewritePrompt(theme, source, idea, requireLink) {
+function buildRewritePrompt(theme, source, idea, requireLink, sourceLine) {
   const system = [
     'Du schreibst den finalen X-Post.',
     'Klingt menschlich, direkt und glaubwürdig.',
@@ -159,6 +167,8 @@ function buildRewritePrompt(theme, source, idea, requireLink) {
     requireLink
       ? 'Der Link darf nicht gekürzt werden und muss exakt so stehen wie angegeben.'
       : '',
+    sourceLine ? 'Am Ende steht eine eigene Quellenzeile, exakt wie vorgegeben.' : '',
+    sourceLine ? `Quellenzeile: ${sourceLine}` : '',
     'Kein Gedankenstrich, keine Emojis, keine Aufzählungen.',
     'Nur JSON.',
   ]
@@ -238,6 +248,27 @@ function validatePostLength(post, link) {
     console.warn('[drafts] Post text exceeds 256 characters before link', {
       length: textPart.length,
       link,
+    });
+  }
+}
+
+function warnIfMissingSourceLine(post, sourceLine) {
+  const text = String(post || '').trim();
+  if (!sourceLine) {
+    return;
+  }
+  const parts = text.split('\n');
+  if (parts.length < 2) {
+    // eslint-disable-next-line no-console
+    console.warn('[drafts] Source line missing on final line');
+    return;
+  }
+  const lastLine = parts[parts.length - 1].trim();
+  if (lastLine !== sourceLine) {
+    // eslint-disable-next-line no-console
+    console.warn('[drafts] Source line mismatch', {
+      expected: sourceLine,
+      actual: lastLine,
     });
   }
 }

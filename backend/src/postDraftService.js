@@ -85,6 +85,7 @@ async function generateFromItem(theme, item, options) {
     source,
     allowedTraits: selectRandomTraits(theme.postProperties),
     requireLink: options.requireLink,
+    sourceLine: options.sourceLine,
   });
   if (!generated.eligible) {
     if (options.skipOnLowScore) {
@@ -125,6 +126,7 @@ async function generateFromTrend(theme) {
       source,
       allowedTraits: selectRandomTraits(theme.postProperties),
       requireLink: false,
+      sourceLine: `Quelle: ${trend}`,
     });
     if (!generated.eligible) {
       continue;
