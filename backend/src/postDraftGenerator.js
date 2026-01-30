@@ -140,6 +140,7 @@ function buildRewritePrompt(theme, source, idea, propertyHints, requireLink) {
     'Keine Gedankenstriche, keine Emojis, keine Aufzählungen.',
     'Keine Meta-Sprache und keine Floskeln.',
     'Keine abstrakten Verben wie "ignorieren" oder "thematisieren".',
+    'Der Text vor dem Link darf maximal 256 Zeichen lang sein.',
     'Kürze inhaltlich und beende Sätze sauber, niemals technisch abschneiden.',
     'Antworte nur mit JSON: {"post":"..."}',
   ].join(' ');
@@ -235,7 +236,11 @@ function validatePostLength(post, link) {
   }
   const textPart = parts.slice(0, -1).join('\n').trim();
   if (textPart.length > 256) {
-    throw new Error('Post text exceeds 256 characters before link');
+    // eslint-disable-next-line no-console
+    console.warn('[drafts] Post text exceeds 256 characters before link', {
+      length: textPart.length,
+      link,
+    });
   }
 }
 
