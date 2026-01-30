@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Post Generator</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="theme-toggle">
+      <span>Dark Mode</span>
+      <label class="switch">
+        <input id="theme-toggle" type="checkbox" />
+        <span class="slider"></span>
+      </label>
+    </div>
+    <main class="page">
+      <nav class="primary-nav" aria-label="Hauptnavigation">
+        <a class="nav-home" href="index.html" aria-label="Home">🏠</a>
+        <a class="is-active" href="generator.html" aria-current="page">Post Generator</a>
+        <a href="themes.html">Themen verwalten</a>
+        <a href="news.html">News</a>
+      </nav>
+      <header>
+        <h1>Post Generator</h1>
+        <p class="lede">
+          Wähle ein Thema und starte den automatischen oder manuellen Modus für einen neuen X-Post.
+        </p>
+      </header>
+
+      <section class="panel">
+        <h2>Generator</h2>
+        <form id="generator-form" class="stack">
+          <label>
+            Thema auswählen
+            <select id="generator-topic" required>
+              <option value="">Thema auswählen ...</option>
+            </select>
+          </label>
+          <fieldset class="mode-fieldset">
+            <legend>Modus</legend>
+            <label class="radio-field">
+              <input type="radio" name="generator-mode" value="auto" required />
+              Automatisch (RSS + Trend-Fallback)
+            </label>
+            <label class="radio-field">
+              <input type="radio" name="generator-mode" value="manual" />
+              Manuell (RSS-Artikel auswählen)
+            </label>
+          </fieldset>
+          <div id="manual-panel" class="manual-panel hidden">
+            <div class="panel-head">
+              <h3>RSS-Artikel auswählen</h3>
+              <button id="load-articles" class="ghost" type="button">Artikel laden</button>
+            </div>
+            <p id="manual-status" class="muted small" role="status" aria-live="polite"></p>
+            <div id="manual-articles" class="manual-articles muted">Noch keine Artikel geladen.</div>
+          </div>
+          <button type="submit">X-Post generieren</button>
+        </form>
+        <p id="generator-status" class="muted small" role="status" aria-live="polite"></p>
+      </section>
+    </main>
+    <script src="theme.js"></script>
+    <script src="generator.js"></script>
+  </body>
+</html>

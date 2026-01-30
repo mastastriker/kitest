@@ -75,6 +75,36 @@ const parseFeed = (xml) => {
   };
 };
 
+const fetchFeed = async (url, timeoutMs = 8000) => {
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(url);
+  } catch (err) {
+    throw new Error('url must be valid');
+  }
+  if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+    throw new Error('url must use http or https');
+  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(parsedUrl.toString(), {
+      headers: { accept: 'application/rss+xml, application/xml, text/xml, */*' },
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!response.ok) {
+      throw new Error(`feed request failed (${response.status})`);
+    }
+    const xml = await response.text();
+    return parseFeed(xml);
+  } catch (err) {
+    clearTimeout(timeout);
+    throw err;
+  }
+};
+
 module.exports = {
   parseFeed,
+  fetchFeed,
 };

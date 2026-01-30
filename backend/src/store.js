@@ -1,8 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const { getDefaultPrompts } = require('./prompts');
-const { getPostPropertyMap } = require('./postProperties');
-
 const STORE_PATH = path.join(__dirname, '..', 'data', 'store.json');
 const ENCODING = 'utf-8';
 
@@ -12,7 +9,7 @@ function ensureStoreFile() {
     fs.mkdirSync(dir, { recursive: true });
   }
   if (!fs.existsSync(STORE_PATH)) {
-    const initial = { topics: [], posts: [] };
+    const initial = { topics: [], drafts: [] };
     fs.writeFileSync(STORE_PATH, JSON.stringify(initial, null, 2), ENCODING);
   }
 }
@@ -20,7 +17,8 @@ function ensureStoreFile() {
 function readStore() {
   ensureStoreFile();
   const raw = fs.readFileSync(STORE_PATH, ENCODING);
-  return JSON.parse(raw);
+  const parsed = JSON.parse(raw);
+  return normalizeStore(parsed);
 }
 
 function writeStore(data) {
@@ -31,38 +29,71 @@ function generateId(prefix = 'id') {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
 }
 
-function applyPromptDefaults(topic) {
-  const defaults = getDefaultPrompts();
-  const prompts = {
-    ...defaults,
-    ...(topic.prompts || {}),
-  };
-  const postProperties = Array.isArray(topic.postProperties) ? topic.postProperties : [];
-  return { ...topic, prompts, postProperties };
-}
-
-function normalizeTopics(store) {
+function normalizeStore(store) {
   let changed = false;
-  const topics = store.topics.map((topic) => {
-    const normalized = applyPromptDefaults(topic);
+  if (!store || typeof store !== 'object') {
+    store = { topics: [], drafts: [] };
+    changed = true;
+  }
+  if (!Array.isArray(store.topics)) {
+    store.topics = [];
+    changed = true;
+  }
+  store.topics = store.topics.map((topic) => {
+    const name = String(topic?.name || '').trim();
+    const normalized = {
+      id: topic?.id || generateId('topic'),
+      name: name || 'Unbenanntes Thema',
+      is_active:
+        typeof topic?.is_active === 'boolean'
+          ? topic.is_active
+          : typeof topic?.active === 'boolean'
+            ? topic.active
+            : true,
+      created_at: topic?.created_at || topic?.createdAt || new Date().toISOString(),
+      updated_at: topic?.updated_at || topic?.updatedAt || null,
+    };
     if (
-      normalized.prompts.system !== topic.prompts?.system ||
-      normalized.prompts.user !== topic.prompts?.user
+      topic?.prompts ||
+      topic?.postProperties ||
+      topic?.createdAt ||
+      topic?.updatedAt ||
+      topic?.active !== undefined
     ) {
       changed = true;
     }
     return normalized;
   });
+  if (!Array.isArray(store.drafts)) {
+    if (Array.isArray(store.posts)) {
+      store.drafts = store.posts.map((post) => {
+        const topic = store.topics.find((t) => t.id === post.topicId);
+        return {
+          id: post.id || generateId('draft'),
+          theme: topic?.name || 'Unbekannt',
+          theme_id: post.topicId || topic?.id || null,
+          content: String(post.text || post.generated_post || '').trim(),
+          status: 'generated',
+          source_type: 'trend',
+          source_ref: 'Legacy Import',
+          created_at: post.createdAt || new Date().toISOString(),
+          approved_at: null,
+        };
+      });
+      changed = true;
+    } else {
+      store.drafts = [];
+      changed = true;
+    }
+  }
+  if (store.posts) {
+    delete store.posts;
+    changed = true;
+  }
   if (changed) {
-    store.topics = topics;
     writeStore(store);
   }
-  return topics;
-}
-
-function getTopics() {
-  const store = readStore();
-  return normalizeTopics(store);
+  return store;
 }
 
 function getTopic(id) {
@@ -75,47 +106,43 @@ function addTopic(name) {
     throw new Error('Topic name is required');
   }
   const store = readStore();
-  const prompts = getDefaultPrompts();
   const topic = {
     id: generateId('topic'),
     name: trimmed,
-    prompts,
-    postProperties: [],
-    createdAt: new Date().toISOString(),
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: null,
   };
   store.topics.push(topic);
   writeStore(store);
   return topic;
 }
 
-function addPosts(topicId, entries, defaults = {}) {
+function getTopics() {
   const store = readStore();
-  const prepared = entries.map((entry) => {
-    const text = typeof entry === 'string' ? entry : entry?.text;
-    const mergedMeta =
-      typeof entry === 'string' ? defaults : { ...defaults, ...(entry?.meta || {}) };
-    const safeText = String(text || '').trim();
-    const generatedPost = String(mergedMeta?.generatedPost || safeText || '').trim();
-    const promptText = mergedMeta?.promptText ? String(mergedMeta.promptText).trim() : undefined;
-    return {
-      id: generateId('post'),
-      topicId,
-      text: safeText,
-      generated_post: generatedPost,
-      prompt_text: promptText,
-      createdAt: new Date().toISOString(),
-      source: mergedMeta?.source || 'openai',
-      prompt: mergedMeta?.prompt,
-    };
-  });
-  store.posts.push(...prepared);
-  writeStore(store);
-  return prepared;
+  return store.topics;
 }
 
-function getPostsForTopic(topicId) {
+function addDraft(draft) {
   const store = readStore();
-  return store.posts.filter((p) => p.topicId === topicId);
+  const entry = {
+    id: generateId('draft'),
+    theme: draft.theme,
+    theme_id: draft.theme_id || null,
+    content: draft.content,
+    status: 'generated',
+    source_type: draft.source_type,
+    source_ref: draft.source_ref,
+    created_at: new Date().toISOString(),
+    approved_at: null,
+  };
+  store.drafts.unshift(entry);
+  writeStore(store);
+  return entry;
+}
+
+function getDrafts() {
+  return readStore().drafts;
 }
 
 function updateTopic(topicId, updates = {}) {
@@ -132,25 +159,13 @@ function updateTopic(topicId, updates = {}) {
     }
     topic.name = trimmed;
   }
-  if (updates.prompts) {
-    const defaults = getDefaultPrompts();
-    const nextPrompts = {
-      ...defaults,
-      ...updates.prompts,
-    };
-    topic.prompts = nextPrompts;
-  } else if (!topic.prompts) {
-    topic.prompts = getDefaultPrompts();
+  if (typeof updates.is_active === 'boolean') {
+    topic.is_active = updates.is_active;
   }
-  if (Array.isArray(updates.postProperties)) {
-    const propertyMap = getPostPropertyMap();
-    topic.postProperties = updates.postProperties.filter((id) => propertyMap[id]);
-  } else if (!Array.isArray(topic.postProperties)) {
-    topic.postProperties = [];
-  }
+  topic.updated_at = new Date().toISOString();
   store.topics[index] = topic;
   writeStore(store);
-  return applyPromptDefaults(topic);
+  return topic;
 }
 
 function deleteTopic(topicId) {
@@ -160,71 +175,51 @@ function deleteTopic(topicId) {
     return null;
   }
   const [removedTopic] = store.topics.splice(index, 1);
-  const before = store.posts.length;
-  store.posts = store.posts.filter((p) => p.topicId !== topicId);
-  const removedPosts = before - store.posts.length;
+  const before = store.drafts.length;
+  store.drafts = store.drafts.filter((p) => p.theme_id !== topicId);
+  const removedPosts = before - store.drafts.length;
   writeStore(store);
   return { topic: removedTopic, removedPosts };
 }
 
-function deletePost(postId) {
+function updateDraftContent(draftId, content) {
+  const trimmed = content?.trim();
+  if (!trimmed) {
+    throw new Error('Draft content is required');
+  }
   const store = readStore();
-  const index = store.posts.findIndex((p) => p.id === postId);
+  const index = store.drafts.findIndex((p) => p.id === draftId);
   if (index === -1) {
     return null;
   }
-  const [removed] = store.posts.splice(index, 1);
+  store.drafts[index].content = trimmed;
   writeStore(store);
-  return removed;
+  return store.drafts[index];
 }
 
-function updatePost(postId, text) {
-  const trimmed = text?.trim();
-  if (!trimmed) {
-    throw new Error('Post text is required');
-  }
+function updateDraftStatus(draftId, status) {
   const store = readStore();
-  const index = store.posts.findIndex((p) => p.id === postId);
+  const index = store.drafts.findIndex((p) => p.id === draftId);
   if (index === -1) {
     return null;
   }
-  store.posts[index].text = trimmed;
-  store.posts[index].generated_post = trimmed;
+  if (!['approved', 'discarded', 'generated'].includes(status)) {
+    throw new Error('Invalid status');
+  }
+  store.drafts[index].status = status;
+  store.drafts[index].approved_at = status === 'approved' ? new Date().toISOString() : null;
   writeStore(store);
-  return store.posts[index];
-}
-
-function updatePostWithPrompt(postId, text, promptText, prompt) {
-  const trimmed = text?.trim();
-  if (!trimmed) {
-    throw new Error('Post text is required');
-  }
-  const store = readStore();
-  const index = store.posts.findIndex((p) => p.id === postId);
-  if (index === -1) {
-    return null;
-  }
-  store.posts[index].text = trimmed;
-  store.posts[index].generated_post = trimmed;
-  if (promptText) {
-    store.posts[index].prompt_text = String(promptText).trim();
-  }
-  if (prompt) {
-    store.posts[index].prompt = prompt;
-  }
-  writeStore(store);
-  return store.posts[index];
+  return store.drafts[index];
 }
 
 module.exports = {
   getTopics,
   getTopic,
   addTopic,
-  addPosts,
-  getPostsForTopic,
+  addDraft,
+  getDrafts,
   updateTopic,
-  deletePost,
-  updatePost,
-  updatePostWithPrompt,
+  updateDraftContent,
+  updateDraftStatus,
   deleteTopic,
 };

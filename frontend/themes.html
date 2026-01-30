@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="de">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -17,21 +17,21 @@
     <main class="page">
       <nav class="primary-nav" aria-label="Hauptnavigation">
         <a class="nav-home" href="index.html" aria-label="Home">🏠</a>
-        <a class="is-active" href="prompts.html" aria-current="page">Themen &amp; Prompts</a>
+        <a href="generator.html">Post Generator</a>
+        <a class="is-active" href="themes.html" aria-current="page">Themen verwalten</a>
         <a href="news.html">News</a>
-        <a href="trends.html">Trends</a>
       </nav>
       <header>
-        <h1>Themen</h1>
-        <p class="lede">Themen verwalten und Post-Eigenschaften pro Thema festlegen.</p>
+        <h1>Themen verwalten</h1>
+        <p class="lede">Themen anlegen, bearbeiten und aktivieren/deaktivieren.</p>
       </header>
 
       <section class="panel">
         <h2>Neues Thema</h2>
-        <form id="topic-form" class="stack">
+        <form id="theme-form" class="stack">
           <label>
-            Titel
-            <input type="text" id="topic-name" placeholder="z. B. Produktivität, AI News" required />
+            Themenname
+            <input type="text" id="theme-name" placeholder="z. B. Produktivität, AI News" required />
           </label>
           <button type="submit">Thema anlegen</button>
         </form>
@@ -39,12 +39,13 @@
 
       <section class="panel">
         <div class="panel-head">
-          <h2>Themen</h2>
+          <h2>Alle Themen</h2>
+          <span id="theme-count" class="badge">0 Themen</span>
         </div>
-        <div id="topics" class="topics"></div>
+        <div id="themes" class="topics"></div>
       </section>
     </main>
     <script src="theme.js"></script>
-    <script src="prompts.js"></script>
+    <script src="themes.js"></script>
   </body>
 </html>

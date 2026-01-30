@@ -1,37 +1,4 @@
 {
-  "topics": [
-    {
-      "id": "topic_mkonr8gk_j8fi",
-      "name": "Crypto/Defi",
-      "createdAt": "2026-01-21T23:32:26.900Z",
-      "prompts": {
-        "system": "Du schreibst prägnante, ansprechende X/Twitter-Posts auf Deutsch. Maximal 260 Zeichen, keine Emojis oder Hashtags außer wenn wirklich nötig. Liefere nur JSON: {\"posts\":[{\"text\":\"...\"}]} ohne zusätzlichen Text.",
-        "user": "Thema: {{topic}}\nErzeuge {{count}} unterschiedliche Posts.\nJeder Post soll selbsterklärend und direkt postbar sein."
-      },
-      "postProperties": [
-        "optimistic",
-        "strong-hook",
-        "question-end",
-        "call-to-action",
-        "curiosity-gap",
-        "no-emojis"
-      ]
-    },
-    {
-      "id": "topic_mkonrgzz_d8ss",
-      "name": "Camping",
-      "createdAt": "2026-01-21T23:32:37.967Z",
-      "prompts": {
-        "system": "Du schreibst prägnante, ansprechende X/Twitter-Posts auf Deutsch. Maximal 260 Zeichen, keine Emojis oder Hashtags außer wenn wirklich nötig. Liefere nur JSON: {\"posts\":[{\"text\":\"...\"}]} ohne zusätzlichen Text.",
-        "user": "Thema: {{topic}}\nErzeuge {{count}} unterschiedliche Posts.\nJeder Post soll selbsterklärend und direkt postbar sein."
-      },
-      "postProperties": [
-        "critical",
-        "strong-hook",
-        "story",
-        "curiosity-gap"
-      ]
-    }
-  ],
-  "posts": []
+  "topics": [],
+  "drafts": []
 }

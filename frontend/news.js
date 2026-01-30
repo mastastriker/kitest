@@ -1,5 +1,4 @@
 const FEED_STORAGE_KEY = 'newsFeeds';
-const TOPIC_STORAGE_KEY = 'newsTopics';
 const HIDDEN_STORAGE_KEY = 'newsHiddenItems';
 
 const feedForm = document.getElementById('feed-form');
@@ -15,9 +14,6 @@ const newsItems = document.getElementById('news-items');
 const newsCount = document.getElementById('news-count');
 const refreshButton = document.getElementById('refresh-news');
 const resetHiddenButton = document.getElementById('reset-hidden');
-
-const topicList = document.getElementById('topic-list');
-const topicCount = document.getElementById('topic-count');
 
 let currentNewsItems = [];
 let allNewsItems = [];
@@ -123,35 +119,6 @@ const renderFeedList = (feeds) => {
   });
 };
 
-const renderTopics = (topics) => {
-  if (!topics.length) {
-    topicList.textContent = 'Noch keine Themen gespeichert.';
-    topicList.classList.add('muted');
-    topicCount.textContent = '0 Themen';
-    return;
-  }
-
-  topicList.classList.remove('muted');
-  topicCount.textContent = `${topics.length} Themen`;
-  topicList.innerHTML = topics
-    .map(
-      (topic) => `
-      <div class="feed-item">
-        <div>
-          <div class="feed-title">${topic.title}</div>
-          <a class="feed-url" href="${topic.link}" target="_blank" rel="noreferrer">${topic.source}</a>
-          <div class="muted small">
-            Gespeichert: ${new Date(topic.savedAt).toLocaleString('de-DE')}
-            ${topic.topicName ? `· Thema: ${topic.topicName}` : ''}
-          </div>
-        </div>
-        <button class="ghost danger" data-topic-remove="${topic.id}" type="button">Entfernen</button>
-      </div>
-    `
-    )
-    .join('');
-};
-
 const setNewsItems = (items) => {
   const hiddenIds = new Set(readStored(HIDDEN_STORAGE_KEY));
   const visibleItems = items.filter((item) => !hiddenIds.has(item.id));
@@ -189,19 +156,12 @@ const setNewsItems = (items) => {
     const actions = document.createElement('div');
     actions.className = 'inline-actions';
 
-    const saveButton = document.createElement('button');
-    saveButton.className = 'ghost';
-    saveButton.type = 'button';
-    saveButton.textContent = 'Als Thema speichern';
-    saveButton.dataset.topicSave = item.id;
-
     const hideButton = document.createElement('button');
     hideButton.className = 'ghost';
     hideButton.type = 'button';
     hideButton.textContent = 'Ausblenden';
     hideButton.dataset.newsHide = item.id;
 
-    actions.append(saveButton);
     actions.append(hideButton);
     card.append(title, meta, link, actions);
     newsItems.appendChild(card);
@@ -343,34 +303,6 @@ const updateFeed = (id, updates) => {
   renderFeedList(feeds);
 };
 
-const saveTopic = (item) => {
-  const topics = readStored(TOPIC_STORAGE_KEY);
-  if (!item?.link) {
-    setStatus(newsStatus, 'Thema ohne Link kann nicht gespeichert werden.', 'danger');
-    return;
-  }
-  if (topics.some((topic) => topic.link === item.link)) {
-    setStatus(newsStatus, 'Dieses Thema ist bereits gespeichert.', 'danger');
-    return;
-  }
-
-  const next = [
-    {
-      id: crypto.randomUUID(),
-      title: item.title,
-      source: item.source,
-      link: item.link,
-      topicName: item.topicName,
-      savedAt: new Date().toISOString(),
-    },
-    ...topics,
-  ];
-
-  writeStored(TOPIC_STORAGE_KEY, next);
-  renderTopics(next);
-  setStatus(newsStatus, 'Thema gespeichert.');
-};
-
 const hideNewsItem = (id) => {
   const hiddenItems = readStored(HIDDEN_STORAGE_KEY);
   if (hiddenItems.includes(id)) return;
@@ -382,12 +314,6 @@ const hideNewsItem = (id) => {
 const resetHiddenItems = () => {
   writeStored(HIDDEN_STORAGE_KEY, []);
   setNewsItems(allNewsItems);
-};
-
-const removeTopic = (id) => {
-  const next = readStored(TOPIC_STORAGE_KEY).filter((topic) => topic.id !== id);
-  writeStored(TOPIC_STORAGE_KEY, next);
-  renderTopics(next);
 };
 
 feedForm.addEventListener('submit', addFeed);
@@ -417,31 +343,13 @@ refreshButton.addEventListener('click', refreshNews);
 resetHiddenButton.addEventListener('click', resetHiddenItems);
 
 newsItems.addEventListener('click', (event) => {
-  const button = event.target.closest('[data-topic-save]');
-  if (button) {
-    const item = currentNewsItems.find((entry) => entry.id === button.dataset.topicSave);
-    if (!item) {
-      setStatus(newsStatus, 'Thema konnte nicht gefunden werden.', 'danger');
-      return;
-    }
-    saveTopic(item);
-    return;
-  }
-
   const hideButton = event.target.closest('[data-news-hide]');
   if (hideButton) {
     hideNewsItem(hideButton.dataset.newsHide);
   }
 });
 
-topicList.addEventListener('click', (event) => {
-  const button = event.target.closest('[data-topic-remove]');
-  if (!button) return;
-  removeTopic(button.dataset.topicRemove);
-});
-
 renderFeedList(readStored(FEED_STORAGE_KEY));
-renderTopics(readStored(TOPIC_STORAGE_KEY));
 allNewsItems = [];
 setNewsItems([]);
 loadTopics();

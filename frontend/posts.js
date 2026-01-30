@@ -1,51 +1,34 @@
 const postsContainer = document.getElementById('posts');
 const state = {
-  posts: [],
+  drafts: [],
 };
 
-async function loadPosts() {
-  postsContainer.innerHTML = '<p class="muted">Lade Beiträge ...</p>';
+async function loadDrafts() {
+  postsContainer.innerHTML = '<p class="muted">Lade Entwürfe ...</p>';
   try {
-    const res = await fetch('/api/posts');
+    const res = await fetch('/api/drafts');
     const data = await res.json();
-    state.posts = data.posts || [];
-    renderPosts();
+    state.drafts = data.drafts || [];
+    renderDrafts();
   } catch (err) {
     postsContainer.innerHTML = `<p class="muted">Fehler beim Laden: ${err.message}</p>`;
   }
 }
 
-async function deletePost(postId, button) {
+async function updateDraftContent(draftId, content, button) {
   button.disabled = true;
   try {
-    const res = await fetch(`/api/posts/${postId}`, { method: 'DELETE' });
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || 'Löschen fehlgeschlagen');
-    }
-    state.posts = state.posts.filter((post) => post.id !== postId);
-    renderPosts();
-  } catch (err) {
-    alert(err.message);
-  } finally {
-    button.disabled = false;
-  }
-}
-
-async function updatePost(postId, text, button) {
-  button.disabled = true;
-  try {
-    const res = await fetch(`/api/posts/${postId}`, {
+    const res = await fetch(`/api/drafts/${draftId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ content }),
     });
     const data = await res.json();
     if (!res.ok) {
       throw new Error(data.error || 'Speichern fehlgeschlagen');
     }
-    state.posts = state.posts.map((post) => (post.id === postId ? data.post : post));
-    renderPosts();
+    state.drafts = state.drafts.map((draft) => (draft.id === draftId ? data.draft : draft));
+    renderDrafts();
   } catch (err) {
     alert(err.message);
   } finally {
@@ -53,84 +36,124 @@ async function updatePost(postId, text, button) {
   }
 }
 
-function renderPosts() {
-  if (!state.posts.length) {
-    postsContainer.innerHTML = '<p class="muted">Noch keine Beiträge vorhanden.</p>';
+async function updateDraftStatus(draftId, status, button) {
+  button.disabled = true;
+  try {
+    const res = await fetch(`/api/drafts/${draftId}/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Status konnte nicht gespeichert werden');
+    }
+    state.drafts = state.drafts.map((draft) => (draft.id === draftId ? data.draft : draft));
+    renderDrafts();
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function renderDrafts() {
+  if (!state.drafts.length) {
+    postsContainer.innerHTML = '<p class="muted">Noch keine Entwürfe vorhanden.</p>';
     return;
   }
   postsContainer.innerHTML = '';
-  const grouped = state.posts.reduce((acc, post) => {
-    const key = post.topicName || 'Ohne Thema';
+  const grouped = state.drafts.reduce((acc, draft) => {
+    const key = draft.theme || 'Ohne Thema';
     if (!acc[key]) acc[key] = [];
-    acc[key].push(post);
+    acc[key].push(draft);
     return acc;
   }, {});
-  Object.entries(grouped).forEach(([topicName, posts]) => {
+  Object.entries(grouped).forEach(([theme, drafts]) => {
     const section = document.createElement('section');
     section.className = 'post-group';
     const header = document.createElement('div');
     header.className = 'post-group-head';
     const title = document.createElement('h3');
-    title.textContent = topicName;
+    title.textContent = theme;
     header.appendChild(title);
     section.appendChild(header);
     const list = document.createElement('div');
     list.className = 'post-group-list';
-    posts.forEach((post) => {
+    drafts.forEach((draft) => {
       const card = document.createElement('article');
       card.className = 'post-card';
       card.innerHTML = `
         <div class="post-card-head">
-          <div class="post-topic">${post.topicName || 'Ohne Thema'}</div>
+          <div class="post-topic">${draft.theme || 'Ohne Thema'}</div>
           <div class="post-actions"></div>
         </div>
+        <div class="post-meta">
+          <span class="badge">${draft.status}</span>
+          <span class="badge">${draft.source_type}</span>
+          <span class="muted small">${draft.created_at ? new Date(draft.created_at).toLocaleString('de-DE') : ''}</span>
+        </div>
         <div class="post-text"></div>
+        <div class="post-source muted small"></div>
       `;
 
       const text = card.querySelector('.post-text');
-      text.textContent = post.generated_post || post.generatedPost || post.text || '';
+      text.textContent = draft.content || '';
+
+      const source = card.querySelector('.post-source');
+      source.textContent = draft.source_ref ? `Quelle: ${draft.source_ref}` : '';
 
       const actions = card.querySelector('.post-actions');
-      const editBtn = document.createElement('button');
-      editBtn.type = 'button';
-      editBtn.className = 'ghost';
-      editBtn.textContent = 'Bearbeiten';
-      editBtn.addEventListener('click', () => {
-        const textarea = document.createElement('textarea');
-        textarea.className = 'post-input';
-        textarea.rows = 4;
-        textarea.value = post.text || '';
-        text.innerHTML = '';
-        text.appendChild(textarea);
-        actions.innerHTML = '';
-        const saveBtn = document.createElement('button');
-        saveBtn.type = 'button';
-        saveBtn.textContent = 'Speichern';
-        saveBtn.addEventListener('click', () => {
-          const nextText = textarea.value.trim();
-          if (!nextText) {
-            alert('Bitte einen gültigen Beitragstext eingeben.');
-            return;
-          }
-          updatePost(post.id, nextText, saveBtn);
+      if (draft.status === 'generated') {
+        const approveBtn = document.createElement('button');
+        approveBtn.type = 'button';
+        approveBtn.textContent = 'Freigeben';
+        approveBtn.addEventListener('click', () => updateDraftStatus(draft.id, 'approved', approveBtn));
+
+        const discardBtn = document.createElement('button');
+        discardBtn.type = 'button';
+        discardBtn.className = 'ghost danger';
+        discardBtn.textContent = 'Verwerfen';
+        discardBtn.addEventListener('click', () =>
+          updateDraftStatus(draft.id, 'discarded', discardBtn)
+        );
+
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'ghost';
+        editBtn.textContent = 'Bearbeiten';
+        editBtn.addEventListener('click', () => {
+          const textarea = document.createElement('textarea');
+          textarea.className = 'post-input';
+          textarea.rows = 4;
+          textarea.value = draft.content || '';
+          text.innerHTML = '';
+          text.appendChild(textarea);
+          actions.innerHTML = '';
+          const saveBtn = document.createElement('button');
+          saveBtn.type = 'button';
+          saveBtn.textContent = 'Speichern';
+          saveBtn.addEventListener('click', () => {
+            const nextText = textarea.value.trim();
+            if (!nextText) {
+              alert('Bitte einen gültigen Entwurfstext eingeben.');
+              return;
+            }
+            updateDraftContent(draft.id, nextText, saveBtn);
+          });
+          const cancelBtn = document.createElement('button');
+          cancelBtn.type = 'button';
+          cancelBtn.className = 'ghost';
+          cancelBtn.textContent = 'Abbrechen';
+          cancelBtn.addEventListener('click', () => renderDrafts());
+          actions.appendChild(saveBtn);
+          actions.appendChild(cancelBtn);
         });
-        const cancelBtn = document.createElement('button');
-        cancelBtn.type = 'button';
-        cancelBtn.className = 'ghost';
-        cancelBtn.textContent = 'Abbrechen';
-        cancelBtn.addEventListener('click', () => renderPosts());
-        actions.appendChild(saveBtn);
-        actions.appendChild(cancelBtn);
-      });
 
-      const deleteBtn = document.createElement('button');
-      deleteBtn.type = 'button';
-      deleteBtn.className = 'ghost danger';
-      deleteBtn.textContent = 'Löschen';
-      deleteBtn.addEventListener('click', () => deletePost(post.id, deleteBtn));
-
-      actions.appendChild(editBtn);
-      actions.appendChild(deleteBtn);
+        actions.appendChild(approveBtn);
+        actions.appendChild(discardBtn);
+        actions.appendChild(editBtn);
+      }
 
       list.appendChild(card);
     });
@@ -139,4 +162,4 @@ function renderPosts() {
   });
 }
 
-loadPosts();
+loadDrafts();
