@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Post Generator</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="theme-toggle">
+      <span>Dark Mode</span>
+      <label class="switch">
+        <input id="theme-toggle" type="checkbox" />
+        <span class="slider"></span>
+      </label>
+    </div>
+    <main class="page">
+      <nav class="primary-nav" aria-label="Hauptnavigation">
+        <a class="nav-home" href="index.html" aria-label="Home">🏠</a>
+        <a href="post-generator.html" class="is-active" aria-current="page">Post Generator</a>
+        <a href="drafts.html">Entwürfe &amp; Freigabe</a>
+        <a href="prompts.html">Themen &amp; Prompts</a>
+        <a href="news.html">News</a>
+        <a href="trends.html">Trends</a>
+      </nav>
+      <header>
+        <h1>Post Generator</h1>
+        <p class="lede">KI-Entwürfe für X-Posts erstellen, ohne automatisches Posting.</p>
+      </header>
+
+      <section class="panel stack">
+        <label>
+          Thema
+          <select id="theme-select"></select>
+        </label>
+
+        <fieldset class="mode-fieldset">
+          <legend>Modus</legend>
+          <label class="radio-field">
+            <input type="radio" name="mode" value="auto" checked />
+            Automatisch (RSS priorisiert, Trend-Fallback)
+          </label>
+          <label class="radio-field">
+            <input type="radio" name="mode" value="manual" />
+            Manuell (RSS-Artikel auswählen)
+          </label>
+        </fieldset>
+
+        <div id="manual-panel" class="stack is-hidden">
+          <label>
+            RSS-Feed URL
+            <input type="url" id="rss-url" placeholder="https://example.com/feed.xml" />
+          </label>
+          <div class="inline-actions">
+            <button type="button" id="load-feed">RSS laden</button>
+          </div>
+          <div id="rss-feedback" class="muted small"></div>
+          <div id="rss-items" class="news-items"></div>
+        </div>
+
+        <div class="inline-actions">
+          <button type="button" id="generate-button">X-Post generieren</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Letzter Entwurf</h2>
+        </div>
+        <div id="draft-result" class="draft-result muted">Noch kein Entwurf erzeugt.</div>
+      </section>
+    </main>
+    <script src="theme.js"></script>
+    <script src="post-generator.js"></script>
+  </body>
+</html>

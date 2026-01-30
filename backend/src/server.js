@@ -13,8 +13,12 @@ const {
   updatePost,
   updatePostWithPrompt,
   deleteTopic,
+  getPostDrafts,
+  updatePostDraft,
+  setPostDraftStatus,
 } = require('./store');
 const { getPostProperties } = require('./postProperties');
+const { getThemeList, getThemePropertyLabels } = require('./postDraftConfig');
 const {
   generatePostsForTopic,
   generatePostFromTrend,
@@ -24,6 +28,7 @@ const {
 } = require('./chatgpt');
 const { generateTrendsForTopic, MODE_MAP, clampCount, buildTrendPrompt } = require('./trends');
 const { parseFeed } = require('./news');
+const { generateDraft } = require('./postDraftService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -57,6 +62,69 @@ app.get('/api/post-properties', (req, res) => {
   res.json({
     properties: getPostProperties().map(({ id, label }) => ({ id, label })),
   });
+});
+
+app.get('/api/post-drafts/themes', (req, res) => {
+  const themes = getThemeList().map((theme) => ({
+    id: theme.id,
+    label: theme.label,
+    properties: getThemePropertyLabels(theme.id),
+  }));
+  res.json({ themes });
+});
+
+app.get('/api/post-drafts', (req, res) => {
+  const { status, theme } = req.query;
+  const drafts = getPostDrafts({
+    status: status || undefined,
+    theme: theme || undefined,
+  });
+  res.json({ drafts });
+});
+
+app.post('/api/post-drafts/generate', async (req, res) => {
+  const { theme, mode, item } = req.body || {};
+  if (!theme) {
+    return res.status(400).json({ error: 'theme is required' });
+  }
+  try {
+    const result = await generateDraft({
+      themeId: theme,
+      mode: mode || 'auto',
+      manualItem: item,
+    });
+    return res.json(result);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+app.put('/api/post-drafts/:id', (req, res) => {
+  try {
+    const updated = updatePostDraft(req.params.id, { content: req.body?.content });
+    if (!updated) {
+      return res.status(404).json({ error: 'draft not found' });
+    }
+    return res.json({ draft: updated });
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+app.post('/api/post-drafts/:id/approve', (req, res) => {
+  const updated = setPostDraftStatus(req.params.id, 'approved');
+  if (!updated) {
+    return res.status(404).json({ error: 'draft not found' });
+  }
+  return res.json({ draft: updated });
+});
+
+app.post('/api/post-drafts/:id/discard', (req, res) => {
+  const updated = setPostDraftStatus(req.params.id, 'discarded');
+  if (!updated) {
+    return res.status(404).json({ error: 'draft not found' });
+  }
+  return res.json({ draft: updated });
 });
 
 app.get('/api/topics', (req, res) => {

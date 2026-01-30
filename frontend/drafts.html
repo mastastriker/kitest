@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="de">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Themen verwalten</title>
+    <title>Entwürfe &amp; Freigabe</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -18,35 +18,27 @@
       <nav class="primary-nav" aria-label="Hauptnavigation">
         <a class="nav-home" href="index.html" aria-label="Home">🏠</a>
         <a href="post-generator.html">Post Generator</a>
-        <a href="drafts.html">Entwürfe &amp; Freigabe</a>
-        <a class="is-active" href="prompts.html" aria-current="page">Themen &amp; Prompts</a>
+        <a class="is-active" href="drafts.html" aria-current="page">Entwürfe &amp; Freigabe</a>
+        <a href="prompts.html">Themen &amp; Prompts</a>
         <a href="news.html">News</a>
         <a href="trends.html">Trends</a>
       </nav>
       <header>
-        <h1>Themen</h1>
-        <p class="lede">Themen verwalten und Post-Eigenschaften pro Thema festlegen.</p>
+        <h1>Entwürfe &amp; Freigabe</h1>
+        <p class="lede">Alle KI-Entwürfe prüfen, bearbeiten und freigeben.</p>
       </header>
 
-      <section class="panel">
-        <h2>Neues Thema</h2>
-        <form id="topic-form" class="stack">
-          <label>
-            Titel
-            <input type="text" id="topic-name" placeholder="z. B. Produktivität, AI News" required />
-          </label>
-          <button type="submit">Thema anlegen</button>
-        </form>
-      </section>
+      <div class="tabs">
+        <button class="tab-button is-active" data-status="generated">Entwürfe</button>
+        <button class="tab-button" data-status="approved">Freigegeben</button>
+        <button class="tab-button" data-status="archived">Archiv</button>
+      </div>
 
       <section class="panel">
-        <div class="panel-head">
-          <h2>Themen</h2>
-        </div>
-        <div id="topics" class="topics"></div>
+        <div id="drafts-container" class="posts-overview"></div>
       </section>
     </main>
     <script src="theme.js"></script>
-    <script src="prompts.js"></script>
+    <script src="drafts.js"></script>
   </body>
 </html>

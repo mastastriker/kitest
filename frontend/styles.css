@@ -489,6 +489,42 @@ button:disabled {
   font-size: 12px;
 }
 
+.is-hidden {
+  display: none;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.tab-button {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tab-button.is-active {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-color: transparent;
+}
+
+.draft-meta {
+  word-break: break-word;
+}
+
+.draft-result {
+  display: grid;
+  gap: 12px;
+}
+
 .danger {
   color: var(--danger);
 }
