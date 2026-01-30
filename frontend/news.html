@@ -19,13 +19,12 @@
         <a class="nav-home" href="index.html" aria-label="Home">🏠</a>
         <a href="post-generator.html">Post Generator</a>
         <a href="drafts.html">Entwürfe &amp; Freigabe</a>
-        <a href="prompts.html">Themen &amp; Prompts</a>
         <a class="is-active" href="news.html" aria-current="page">News</a>
         <a href="trends.html">Trends</a>
       </nav>
       <header>
         <h1>News</h1>
-        <p class="lede">Wähle relevante News-Themen aus aktiven RSS-Feeds für spätere Posts.</p>
+        <p class="lede">Wähle relevante News aus aktiven RSS-Feeds für spätere Posts.</p>
       </header>
 
       <section class="panel">
@@ -44,12 +43,6 @@
               autocomplete="url"
               required
             />
-          </label>
-          <label>
-            Thema (optional)
-            <select id="feed-topic">
-              <option value="">Ohne Thema</option>
-            </select>
           </label>
           <label class="checkbox-field">
             <input type="checkbox" id="feed-active" checked />
@@ -74,13 +67,6 @@
         <div id="news-items" class="news-items muted">Noch keine News geladen.</div>
       </section>
 
-      <section class="panel">
-        <div class="panel-head">
-          <h2>Gespeicherte Themen</h2>
-          <span id="topic-count" class="badge">0 Themen</span>
-        </div>
-        <div id="topic-list" class="feed-list muted">Noch keine Themen gespeichert.</div>
-      </section>
     </main>
     <script src="theme.js"></script>
     <script src="news.js"></script>

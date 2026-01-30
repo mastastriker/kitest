@@ -1,6 +1,4 @@
 const OpenAI = require('openai');
-const { getPostPropertyMap } = require('./postProperties');
-
 const apiKey = process.env.OPENAI_API_KEY;
 const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 const client = apiKey ? new OpenAI({ apiKey }) : null;
@@ -17,14 +15,13 @@ const SCORE_FIELDS = [
 async function generateDraftFromSource({
   theme,
   source,
-  allowedTraits,
+  styleModule,
   requireLink,
   sourceLine,
 }) {
   if (!client) {
     throw new Error('OpenAI client is not configured');
   }
-  const traitHints = buildTraitHints(allowedTraits);
   const analysis = await runAnalysis(theme, source);
   if (!analysis || analysis.total_score < 9) {
     return {
@@ -32,7 +29,7 @@ async function generateDraftFromSource({
       analysis,
     };
   }
-  const idea = await runIdeaStage(theme, source, analysis, traitHints);
+  const idea = await runIdeaStage(theme, source, analysis, styleModule);
   const finalText = await runRewriteStage(theme, source, idea, requireLink, sourceLine);
   return {
     eligible: true,
@@ -57,8 +54,8 @@ async function runAnalysis(theme, source) {
   return parseAnalysis(content);
 }
 
-async function runIdeaStage(theme, source, analysis, traitHints) {
-  const { system, user } = buildIdeaPrompt(theme, source, analysis, traitHints);
+async function runIdeaStage(theme, source, analysis, styleModule) {
+  const { system, user } = buildIdeaPrompt(theme, source, analysis, styleModule);
   const response = await client.chat.completions.create({
     model,
     messages: [
@@ -91,7 +88,7 @@ async function runRewriteStage(theme, source, idea, requireLink, sourceLine) {
   if (requireLink) {
     validatePostLength(parsed, source.link);
   } else if (sourceLine) {
-    warnIfMissingSourceLine(parsed, sourceLine);
+    validateSourceLine(parsed, sourceLine);
   }
   return parsed;
 }
@@ -118,7 +115,7 @@ function buildAnalysisPrompt(theme, source) {
   return { system, user };
 }
 
-function buildIdeaPrompt(theme, source, analysis, traitHints) {
+function buildIdeaPrompt(theme, source, analysis, styleModule) {
   const system = [
     'Du entwickelst eine klare Post-Idee.',
     'Keine Zusammenfassung des Artikels.',
@@ -129,7 +126,7 @@ function buildIdeaPrompt(theme, source, analysis, traitHints) {
     `Thema: ${theme}`,
     `Kernaussage: ${analysis.core_claim}`,
     `Quelle: ${source.title}`,
-    traitHints,
+    buildStyleModuleHint(styleModule),
     'Erzeuge eine klare These, einen Blickwinkel und eine meinungsstarke Rohfassung.',
     'Format: {"thesis":"...","angle":"...","rough":"..."}',
   ]
@@ -177,19 +174,11 @@ function buildRewritePrompt(theme, source, idea, requireLink, sourceLine) {
   return { system, user };
 }
 
-function buildTraitHints(allowedTraits = []) {
-  if (!allowedTraits.length) {
+function buildStyleModuleHint(styleModule) {
+  if (!styleModule?.rule) {
     return '';
   }
-  const propertyMap = getPostPropertyMap();
-  const traits = allowedTraits
-    .map((id) => propertyMap[id]?.prompt)
-    .filter(Boolean)
-    .map((prompt) => `- ${prompt}`);
-  if (!traits.length) {
-    return '';
-  }
-  return `allowed_traits:\n${traits.join('\n')}`;
+  return `Stil-Modul:\n- ${styleModule.rule}`;
 }
 
 function parseAnalysis(payload) {
@@ -252,24 +241,18 @@ function validatePostLength(post, link) {
   }
 }
 
-function warnIfMissingSourceLine(post, sourceLine) {
+function validateSourceLine(post, sourceLine) {
   const text = String(post || '').trim();
   if (!sourceLine) {
     return;
   }
   const parts = text.split('\n');
   if (parts.length < 2) {
-    // eslint-disable-next-line no-console
-    console.warn('[drafts] Source line missing on final line');
-    return;
+    throw new Error('Post must place the source line on a new line');
   }
   const lastLine = parts[parts.length - 1].trim();
   if (lastLine !== sourceLine) {
-    // eslint-disable-next-line no-console
-    console.warn('[drafts] Source line mismatch', {
-      expected: sourceLine,
-      actual: lastLine,
-    });
+    throw new Error('Post source line must match the expected source');
   }
 }
 

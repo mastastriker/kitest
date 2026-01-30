@@ -7,19 +7,20 @@ const rssFeedback = document.getElementById('rss-feedback');
 const generateButton = document.getElementById('generate-button');
 const draftResult = document.getElementById('draft-result');
 
+const THEMES = [
+  { id: 'crypto', label: 'crypto' },
+  { id: 'camping', label: 'camping' },
+];
+
 const state = {
-  themes: [],
   mode: 'auto',
   rssItems: [],
   selectedItem: null,
 };
 
-async function loadThemes() {
-  const res = await fetch('/api/post-drafts/themes');
-  const data = await res.json();
-  state.themes = data.themes || [];
+function loadThemes() {
   themeSelect.innerHTML = '';
-  state.themes.forEach((theme) => {
+  THEMES.forEach((theme) => {
     const option = document.createElement('option');
     option.value = theme.id;
     option.textContent = theme.label;
@@ -162,7 +163,5 @@ document.querySelectorAll('input[name="mode"]').forEach((input) => {
 loadFeedButton.addEventListener('click', loadFeed);
 generateButton.addEventListener('click', generateDraft);
 
-loadThemes().catch(() => {
-  themeSelect.innerHTML = '<option value="">Keine Themen verfügbar</option>';
-});
+loadThemes();
 setMode('auto');

@@ -1,18 +1,52 @@
 const { parseFeed } = require('./news');
 const { generateTrendsForTopic } = require('./trends');
 const { generateDraftFromSource } = require('./postDraftGenerator');
-const {
-  addPostDraft,
-  getDraftBySourceRef,
-  getDraftStatsByTheme,
-  getTopic,
-} = require('./store');
+const { addPostDraft, getDraftBySourceRef, getDraftStatsByTheme } = require('./store');
 
 const MAX_GENERATED_PER_THEME = 3;
 const MAX_PER_DAY = 5;
 
+const THEMES = {
+  crypto: {
+    id: 'crypto',
+    label: 'crypto',
+    rssFeeds: [
+      'https://cointelegraph.com/rss',
+      'https://www.coindesk.com/arc/outboundfeeds/rss/',
+    ],
+  },
+  camping: {
+    id: 'camping',
+    label: 'camping',
+    rssFeeds: ['https://www.outsideonline.com/feed/', 'https://www.backpacker.com/feed/'],
+  },
+};
+
+const STYLE_MODULES = [
+  {
+    id: 'open-question',
+    rule: 'Beende die Rohfassung mit einer offenen Frage.',
+  },
+  {
+    id: 'provocative',
+    rule: 'Formuliere eine provokante These, die klar Position bezieht.',
+  },
+  {
+    id: 'call-to-comment',
+    rule: 'Fordere am Ende direkt zu Kommentaren auf.',
+  },
+  {
+    id: 'link-first',
+    rule: 'Beginne den Textteil mit einem klaren Quellenbezug als Einstieg.',
+  },
+  {
+    id: 'link-last',
+    rule: 'Plane den Textteil so, dass die Quellenzeile am Ende logisch wirkt.',
+  },
+];
+
 async function generateDraft({ themeId, mode, manualItem }) {
-  const theme = getTopic(themeId);
+  const theme = getThemeConfig(themeId);
   if (!theme) {
     throw new Error('theme is invalid');
   }
@@ -57,7 +91,7 @@ function enforceLimits(themeId) {
 }
 
 async function generateFromRss(theme) {
-  const items = await fetchFeedItemsFromTopic(theme);
+  const items = await fetchFeedItemsFromTheme(theme);
   const item = selectEligibleItem(items);
   if (!item) {
     return null;
@@ -81,9 +115,9 @@ async function generateFromItem(theme, item, options) {
     publishedAt: item.publishedAt,
   };
   const generated = await generateDraftFromSource({
-    theme: theme.name,
+    theme: theme.label,
     source,
-    allowedTraits: selectRandomTraits(theme.postProperties),
+    styleModule: selectStyleModule(),
     requireLink: options.requireLink,
     sourceLine: options.sourceLine,
   });
@@ -109,7 +143,7 @@ async function generateFromItem(theme, item, options) {
 }
 
 async function generateFromTrend(theme) {
-  const trends = await generateTrendsForTopic(theme.name, 'current', 6);
+  const trends = await generateTrendsForTopic(theme.label, 'current', 6);
   for (const trend of trends) {
     const sourceRef = `trend:${trend}`;
     if (getDraftBySourceRef(sourceRef)) {
@@ -122,9 +156,9 @@ async function generateFromTrend(theme) {
       publishedAt: '',
     };
     const generated = await generateDraftFromSource({
-      theme: theme.name,
+      theme: theme.label,
       source,
-      allowedTraits: selectRandomTraits(theme.postProperties),
+      styleModule: selectStyleModule(),
       requireLink: false,
       sourceLine: `Quelle: ${trend}`,
     });
@@ -182,7 +216,7 @@ function selectEligibleItem(items = []) {
   );
 }
 
-async function fetchFeedItemsFromTopic(theme) {
+async function fetchFeedItemsFromTheme(theme) {
   const feeds = Array.isArray(theme.rssFeeds) ? theme.rssFeeds : [];
   if (!feeds.length) {
     return [];
@@ -196,18 +230,14 @@ async function fetchFeedItemsFromTopic(theme) {
   return [];
 }
 
-function selectRandomTraits(traits = []) {
-  const available = Array.isArray(traits) ? traits.filter(Boolean) : [];
-  if (!available.length) {
-    return [];
-  }
-  const shuffled = [...available];
-  for (let i = shuffled.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  const count = Math.min(2, Math.max(1, Math.ceil(Math.random() * 2)));
-  return shuffled.slice(0, count);
+function selectStyleModule() {
+  const index = Math.floor(Math.random() * STYLE_MODULES.length);
+  return STYLE_MODULES[index];
+}
+
+function getThemeConfig(themeId) {
+  const theme = THEMES[themeId];
+  return theme ? { ...theme } : null;
 }
 
 module.exports = {
