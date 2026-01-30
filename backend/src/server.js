@@ -2,7 +2,30 @@ require('dotenv').config();
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
-const { getPostDrafts, updatePostDraft, setPostDraftStatus } = require('./store');
+const {
+  getTopics,
+  getTopic,
+  addTopic,
+  addPosts,
+  getPostsForTopic,
+  updateTopic,
+  deletePost,
+  updatePost,
+  updatePostWithPrompt,
+  deleteTopic,
+  getPostDrafts,
+  updatePostDraft,
+  setPostDraftStatus,
+} = require('./store');
+const { getPostProperties } = require('./postProperties');
+const { getThemeList, getThemePropertyLabels } = require('./postDraftConfig');
+const {
+  generatePostsForTopic,
+  generatePostFromTrend,
+  generatePostFromPrompt,
+  buildPostPromptForTopic,
+  buildTrendPostPrompt,
+} = require('./chatgpt');
 const { generateTrendsForTopic, MODE_MAP, clampCount, buildTrendPrompt } = require('./trends');
 const { parseFeed } = require('./news');
 const { generateDraft } = require('./postDraftService');
@@ -18,6 +41,21 @@ app.use(express.static(FRONTEND_DIR));
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
+});
+
+app.get('/api/post-properties', (req, res) => {
+  res.json({
+    properties: getPostProperties().map(({ id, label }) => ({ id, label })),
+  });
+});
+
+app.get('/api/post-drafts/themes', (req, res) => {
+  const themes = getThemeList().map((theme) => ({
+    id: theme.id,
+    label: theme.label,
+    properties: getThemePropertyLabels(theme.id),
+  }));
+  res.json({ themes });
 });
 
 app.get('/api/post-drafts', (req, res) => {

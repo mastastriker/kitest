@@ -1,7 +1,13 @@
 const { parseFeed } = require('./news');
 const { generateTrendsForTopic } = require('./trends');
+const { getThemeConfig } = require('./postDraftConfig');
 const { generateDraftFromSource } = require('./postDraftGenerator');
-const { addPostDraft, getDraftBySourceRef, getDraftStatsByTheme } = require('./store');
+const {
+  addPostDraft,
+  getDraftBySourceRef,
+  getDraftStatsByTheme,
+  getTopic,
+} = require('./store');
 
 const MAX_GENERATED_PER_THEME = 3;
 const MAX_PER_DAY = 5;
@@ -91,7 +97,7 @@ function enforceLimits(themeId) {
 }
 
 async function generateFromRss(theme) {
-  const items = await fetchFeedItemsFromTheme(theme);
+  const items = await fetchFeedItemsFromTopic(theme);
   const item = selectEligibleItem(items);
   if (!item) {
     return null;
@@ -115,9 +121,9 @@ async function generateFromItem(theme, item, options) {
     publishedAt: item.publishedAt,
   };
   const generated = await generateDraftFromSource({
-    theme: theme.label,
+    theme: theme.name,
     source,
-    styleModule: selectStyleModule(),
+    allowedTraits: selectRandomTraits(theme.postProperties),
     requireLink: options.requireLink,
     sourceLine: options.sourceLine,
   });
@@ -156,9 +162,9 @@ async function generateFromTrend(theme) {
       publishedAt: '',
     };
     const generated = await generateDraftFromSource({
-      theme: theme.label,
+      theme: theme.name,
       source,
-      styleModule: selectStyleModule(),
+      allowedTraits: selectRandomTraits(theme.postProperties),
       requireLink: false,
       sourceLine: `Quelle: ${trend}`,
     });
@@ -216,7 +222,7 @@ function selectEligibleItem(items = []) {
   );
 }
 
-async function fetchFeedItemsFromTheme(theme) {
+async function fetchFeedItemsFromTopic(theme) {
   const feeds = Array.isArray(theme.rssFeeds) ? theme.rssFeeds : [];
   if (!feeds.length) {
     return [];
@@ -230,14 +236,18 @@ async function fetchFeedItemsFromTheme(theme) {
   return [];
 }
 
-function selectStyleModule() {
-  const index = Math.floor(Math.random() * STYLE_MODULES.length);
-  return STYLE_MODULES[index];
-}
-
-function getThemeConfig(themeId) {
-  const theme = THEMES[themeId];
-  return theme ? { ...theme } : null;
+function selectRandomTraits(traits = []) {
+  const available = Array.isArray(traits) ? traits.filter(Boolean) : [];
+  if (!available.length) {
+    return [];
+  }
+  const shuffled = [...available];
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  const count = Math.min(2, Math.max(1, Math.ceil(Math.random() * 2)));
+  return shuffled.slice(0, count);
 }
 
 module.exports = {
