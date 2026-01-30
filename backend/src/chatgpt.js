@@ -29,18 +29,33 @@ async function generateDraftFromArticle(topicName, article, styleModule) {
   if (!client) {
     throw new Error('OpenAI client is not configured');
   }
-  const { system, user } = buildArticlePrompt(topicName, article, styleModule);
-  const content = await requestCompletion(system, user);
-  return content;
+  const themeDescription = article?.themeDescription || 'Keine.';
+  const articleText = buildArticleText(article);
+  const analysis = await runAnalysisStep(topicName, themeDescription, articleText);
+  const postIdea = await runPostIdeaStep(analysis);
+  return runFinalStep({
+    postIdea,
+    theme: topicName,
+    sourceRef: article.link,
+    sourceType: 'rss',
+    styleModule,
+  });
 }
 
 async function generateDraftFromTrend(topicName, trend, styleModule) {
   if (!client) {
     throw new Error('OpenAI client is not configured');
   }
-  const { system, user } = buildTrendPostPrompt(topicName, trend, styleModule);
-  const content = await requestCompletion(system, user);
-  return content;
+  const themeDescription = 'Keine.';
+  const analysis = await runAnalysisStep(topicName, themeDescription, trend);
+  const postIdea = await runPostIdeaStep(analysis);
+  return runFinalStep({
+    postIdea,
+    theme: topicName,
+    sourceRef: trend,
+    sourceType: 'trend',
+    styleModule,
+  });
 }
 
 async function generateTrendSignal(topicName, count = 7) {
@@ -86,62 +101,134 @@ async function requestCompletion(system, user) {
   return trimmed;
 }
 
-function buildArticlePrompt(topicName, article, styleModule) {
+async function runAnalysisStep(theme, themeDescription, content) {
   const system = [
-    'Du bist ein Redaktionsassistent für X-Posts.',
-    'Antworte nur mit dem finalen X-Post, ohne Erklärungen.',
-    'Arbeite strikt in drei Schritten (intern): Analyse, Post-Idee, Anti-KI-Rewrite.',
-    'Schritt 1 Analyse: Kernaussage, Konflikt, Diskussionspotenzial, keine Zusammenfassung.',
-    'Schritt 2 Post-Idee: klare These/Blickwinkel, nicht neutral, keine Erklärung.',
-    'Schritt 3 Anti-KI-Rewrite: finale Fassung.',
-    'Finale Regeln: kurze Sätze, kein Gedankenstrich, keine Floskeln, kein Meta-Kommentar.',
-    'Verständlich beim ersten Lesen.',
-    'Maximal 280 Zeichen Gesamt; jeder Link zählt pauschal als 23 Zeichen.',
-    'Wenn zu lang: neu formulieren, nicht kürzen.',
-    'Gib nur den finalen Post aus, ohne Anführungszeichen.',
+    'Du analysierst Inhalte für die spätere Erstellung eines meinungsstarken X-Posts.',
+    'Du schreibst keinen Social-Post.',
   ].join(' ');
 
-  const styleInstruction = buildStyleInstruction(styleModule, 'rss');
-
   const user = [
-    `Thema: ${topicName}`,
-    `Artikel-Titel: ${article.title || 'Ohne Titel'}`,
-    article.summary ? `Artikel-Auszug: ${article.summary}` : null,
-    `Artikel-Link: ${article.link}`,
-    'Link-Regel (RSS): Posttext, dann leere Zeile, dann der Link.',
-    styleInstruction,
-  ]
-    .filter(Boolean)
-    .join('\n');
-  return { system, user };
+    `Thema: ${theme}`,
+    `Beschreibung: ${themeDescription}`,
+    '',
+    'Inhalt:',
+    content,
+    '',
+    'Aufgabe:',
+    '- identifiziere die zentrale Aussage',
+    '- identifiziere den Konflikt oder Reibungspunkt',
+    '- beschreibe, warum Menschen darüber diskutieren könnten',
+    '',
+    'Wichtig:',
+    '- KEINE Zusammenfassung',
+    '- KEIN Social-Text',
+    '- KEINE Meinung formulieren',
+    '',
+    'Gib das Ergebnis strukturiert aus.',
+    '',
+    'Erwarteter Output:',
+    'Kernaussage:',
+    '...',
+    '',
+    'Konflikt / Reibung:',
+    '...',
+    '',
+    'Diskussionspotenzial:',
+    '...',
+  ].join('\n');
+
+  return requestCompletion(system, user);
 }
 
-function buildTrendPostPrompt(topicName, trend, styleModule) {
+async function runPostIdeaStep(analysisOutput) {
   const system = [
-    'Du bist ein Redaktionsassistent für X-Posts.',
-    'Antworte nur mit dem finalen X-Post, ohne Erklärungen.',
-    'Arbeite strikt in drei Schritten (intern): Analyse, Post-Idee, Anti-KI-Rewrite.',
-    'Schritt 1 Analyse: Kernaussage, Konflikt, Diskussionspotenzial, keine Zusammenfassung.',
-    'Schritt 2 Post-Idee: klare These/Blickwinkel, nicht neutral, keine Erklärung.',
-    'Schritt 3 Anti-KI-Rewrite: finale Fassung.',
-    'Finale Regeln: kurze Sätze, kein Gedankenstrich, keine Floskeln, kein Meta-Kommentar.',
-    'Verständlich beim ersten Lesen.',
-    'Maximal 280 Zeichen Gesamt; jeder Link zählt pauschal als 23 Zeichen.',
-    'Wenn zu lang: neu formulieren, nicht kürzen.',
-    'Gib nur den finalen Post aus, ohne Anführungszeichen.',
+    'Du entwickelst eine klare Post-Idee für einen X-Post.',
+    'Du schreibst noch keinen finalen Text.',
   ].join(' ');
 
-  const styleInstruction = buildStyleInstruction(styleModule, 'trend');
+  const user = [
+    'Analyse:',
+    analysisOutput,
+    '',
+    'Aufgabe:',
+    '- formuliere eine klare These oder einen Blickwinkel',
+    '- nicht neutral',
+    '- keine Erklärung',
+    '- keine Zusammenfassung',
+    '- Ziel ist Meinung + Reibung',
+    '',
+    'Gib NUR die Post-Idee aus.',
+  ].join('\n');
+
+  return requestCompletion(system, user);
+}
+
+async function runFinalStep({ postIdea, theme, sourceRef, sourceType, styleModule }) {
+  const system = [
+    'Du schreibst einen finalen X-Post.',
+    'Der Text muss natürlich klingen und darf nicht nach KI wirken.',
+  ].join(' ');
+
+  const styleInstruction = buildStyleInstruction(styleModule, sourceType);
+  const linkRules =
+    sourceType === 'rss'
+      ? ['- RSS:', '  Posttext', '', '  https://original-artikel-url'].join('\n')
+      : ['- Trend:', '  Posttext', '', '  Quelle: <Trendbeschreibung>'].join('\n');
 
   const user = [
-    `Thema: ${topicName}`,
-    `Trend-Beschreibung: ${trend}`,
-    'Trend-Regel: Posttext, dann leere Zeile, dann "Quelle: <Trendbeschreibung>".',
+    'Post-Idee:',
+    postIdea,
+    '',
+    'Kontext:',
+    `Thema: ${theme}`,
+    `Quelle: ${sourceRef}`,
+    '',
+    'REGELN (HART):',
+    '- MAXIMAL 280 Zeichen gesamt',
+    '- JEDER Link zählt pauschal als 23 Zeichen',
+    '- kurze Sätze',
+    '- kein Gedankenstrich',
+    '- keine Erklärsprache',
+    '- keine Floskeln',
+    '- kein Meta-Kommentar',
+    '- verständlich beim ersten Lesen',
+    '- wenn zu lang: NEU FORMULIEREN, NICHT kürzen',
+    '',
+    'LINK-REGELN:',
+    linkRules,
+    '',
+    'STIL-VARIANZ (INTERN):',
+    '- Wähle zufällig GENAU EIN Stil-Modul:',
+    '  - offene Frage am Ende',
+    '  - provokante These',
+    '  - Call-to-Comment',
+    '  - Link am Anfang',
+    '  - Link am Ende',
+    '',
     styleInstruction,
-  ]
-    .filter(Boolean)
-    .join('\n');
-  return { system, user };
+    '',
+    'WICHTIG:',
+    '- Der Output ist der FINALE X-POST',
+    '- KEIN zusätzlicher Text',
+    '- KEIN Kürzen im Code',
+    '- KEIN Anhängen von Links im Code',
+  ].join('\n');
+
+  return requestCompletion(system, user);
+}
+
+function buildArticleText(article) {
+  const lines = [];
+  if (article?.title) {
+    lines.push(`Titel: ${article.title}`);
+  }
+  if (article?.summary) {
+    lines.push(`Auszug: ${article.summary}`);
+  }
+  if (!lines.length) {
+    lines.push('Keine Inhalte verfügbar.');
+  }
+  return lines.join('\n');
 }
 
 function buildTrendSignalPrompt(topicName, count) {
