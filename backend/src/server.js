@@ -18,7 +18,6 @@ const {
   setPostDraftStatus,
 } = require('./store');
 const { getPostProperties } = require('./postProperties');
-const { getThemeList, getThemePropertyLabels } = require('./postDraftConfig');
 const {
   generatePostsForTopic,
   generatePostFromTrend,
@@ -65,10 +64,16 @@ app.get('/api/post-properties', (req, res) => {
 });
 
 app.get('/api/post-drafts/themes', (req, res) => {
-  const themes = getThemeList().map((theme) => ({
-    id: theme.id,
-    label: theme.label,
-    properties: getThemePropertyLabels(theme.id),
+  const propertyMap = getPostProperties().reduce((acc, property) => {
+    acc[property.id] = property.label;
+    return acc;
+  }, {});
+  const themes = getTopics().map((topic) => ({
+    id: topic.id,
+    label: topic.name,
+    properties: (topic.postProperties || [])
+      .filter((id) => propertyMap[id])
+      .map((id) => ({ id, label: propertyMap[id] })),
   }));
   res.json({ themes });
 });

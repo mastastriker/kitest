@@ -1,18 +1,18 @@
 const { parseFeed } = require('./news');
 const { generateTrendsForTopic } = require('./trends');
-const { getThemeConfig } = require('./postDraftConfig');
 const { generateDraftFromSource } = require('./postDraftGenerator');
 const {
   addPostDraft,
   getDraftBySourceRef,
   getDraftStatsByTheme,
+  getTopic,
 } = require('./store');
 
 const MAX_GENERATED_PER_THEME = 3;
 const MAX_PER_DAY = 5;
 
 async function generateDraft({ themeId, mode, manualItem }) {
-  const theme = getThemeConfig(themeId);
+  const theme = getTopic(themeId);
   if (!theme) {
     throw new Error('theme is invalid');
   }
@@ -57,26 +57,16 @@ function enforceLimits(themeId) {
 }
 
 async function generateFromRss(theme) {
-  const feeds = Array.isArray(theme.rssFeeds) ? theme.rssFeeds : [];
-  if (!feeds.length) {
+  const items = await fetchFeedItemsFromTopic(theme);
+  const item = selectEligibleItem(items);
+  if (!item) {
     return null;
   }
-  for (const feedUrl of feeds) {
-    const items = await fetchFeedItems(feedUrl);
-    const item = selectEligibleItem(items);
-    if (!item) {
-      continue;
-    }
-    const result = await generateFromItem(theme, item, {
-      sourceType: 'rss',
-      requireLink: true,
-      skipOnLowScore: true,
-    });
-    if (result) {
-      return result;
-    }
-  }
-  return null;
+  return generateFromItem(theme, item, {
+    sourceType: 'rss',
+    requireLink: true,
+    skipOnLowScore: true,
+  });
 }
 
 async function generateFromItem(theme, item, options) {
@@ -91,9 +81,9 @@ async function generateFromItem(theme, item, options) {
     publishedAt: item.publishedAt,
   };
   const generated = await generateDraftFromSource({
-    theme: theme.id,
+    theme: theme.name,
     source,
-    allowedProperties: theme.allowedProperties,
+    allowedTraits: selectRandomTraits(theme.postProperties),
     requireLink: options.requireLink,
   });
   if (!generated.eligible) {
@@ -118,7 +108,7 @@ async function generateFromItem(theme, item, options) {
 }
 
 async function generateFromTrend(theme) {
-  const trends = await generateTrendsForTopic(theme.label, 'current', 6);
+  const trends = await generateTrendsForTopic(theme.name, 'current', 6);
   for (const trend of trends) {
     const sourceRef = `trend:${trend}`;
     if (getDraftBySourceRef(sourceRef)) {
@@ -131,9 +121,9 @@ async function generateFromTrend(theme) {
       publishedAt: '',
     };
     const generated = await generateDraftFromSource({
-      theme: theme.id,
+      theme: theme.name,
       source,
-      allowedProperties: theme.allowedProperties,
+      allowedTraits: selectRandomTraits(theme.postProperties),
       requireLink: false,
     });
     if (!generated.eligible) {
@@ -188,6 +178,34 @@ function selectEligibleItem(items = []) {
       return !getDraftBySourceRef(item.link);
     }) || null
   );
+}
+
+async function fetchFeedItemsFromTopic(theme) {
+  const feeds = Array.isArray(theme.rssFeeds) ? theme.rssFeeds : [];
+  if (!feeds.length) {
+    return [];
+  }
+  for (const feedUrl of feeds) {
+    const items = await fetchFeedItems(feedUrl);
+    if (items.length) {
+      return items;
+    }
+  }
+  return [];
+}
+
+function selectRandomTraits(traits = []) {
+  const available = Array.isArray(traits) ? traits.filter(Boolean) : [];
+  if (!available.length) {
+    return [];
+  }
+  const shuffled = [...available];
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  const count = Math.min(2, Math.max(1, Math.ceil(Math.random() * 2)));
+  return shuffled.slice(0, count);
 }
 
 module.exports = {
