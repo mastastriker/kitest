@@ -48,7 +48,11 @@ async function updateDraftStatus(draftId, status, button) {
     if (!res.ok) {
       throw new Error(data.error || 'Status konnte nicht gespeichert werden');
     }
-    state.drafts = state.drafts.map((draft) => (draft.id === draftId ? data.draft : draft));
+    if (data.draft.status === 'discarded') {
+      state.drafts = state.drafts.filter((draft) => draft.id !== draftId);
+    } else {
+      state.drafts = state.drafts.map((draft) => (draft.id === draftId ? data.draft : draft));
+    }
     renderDrafts();
   } catch (err) {
     alert(err.message);
