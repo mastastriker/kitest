@@ -5,8 +5,6 @@ const {
   getPostDrafts,
   updatePostDraft,
   updatePostDraftStatus,
-  markNewsItemUsed,
-  markNewsItemDiscarded,
 } = require('./store');
 const { generateTrendsForTopic } = require('./trends');
 
@@ -304,17 +302,13 @@ async function generateDraftForTheme(themeId, payload) {
   if (generated.skipped) {
     throw new Error('Artikel ist für einen Draft nicht stark genug.');
   }
-  const created = addPostDraft({
+  return addPostDraft({
     theme: themeId,
     content: generated.content,
     status: 'generated',
     source_type: sourceType,
     source_ref: normalized.link,
   });
-  if (sourceType === 'rss' || sourceType === 'manual') {
-    markNewsItemUsed(normalized.link);
-  }
-  return created;
 }
 
 async function generateDraftFromCandidates(themeId, candidates) {
@@ -328,15 +322,13 @@ async function generateDraftFromCandidates(themeId, candidates) {
       if (draft.skipped) {
         continue;
       }
-      const created = addPostDraft({
+      return addPostDraft({
         theme: themeId,
         content: draft.content,
         status: 'generated',
         source_type: 'rss',
         source_ref: article.link,
       });
-      markNewsItemUsed(article.link);
-      return created;
     } catch (error) {
       continue;
     }
@@ -376,11 +368,7 @@ function approveDraft(draftId) {
 }
 
 function discardDraft(draftId) {
-  const draft = updatePostDraftStatus(draftId, 'discarded');
-  if (draft?.source_ref && (draft.source_type === 'rss' || draft.source_type === 'manual')) {
-    markNewsItemDiscarded(draft.source_ref);
-  }
-  return draft;
+  return updatePostDraftStatus(draftId, 'discarded');
 }
 
 function editDraft(draftId, content) {

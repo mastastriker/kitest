@@ -155,11 +155,10 @@ const renderTopics = (topics) => {
 const setNewsItems = (items) => {
   const hiddenIds = new Set(readStored(HIDDEN_STORAGE_KEY));
   const visibleItems = items.filter((item) => !hiddenIds.has(item.id));
-  const limitedItems = visibleItems.slice(0, 5);
-  currentNewsItems = limitedItems;
+  currentNewsItems = visibleItems;
   newsItems.innerHTML = '';
 
-  if (!limitedItems.length) {
+  if (!visibleItems.length) {
     newsItems.textContent = 'Noch keine News geladen.';
     newsItems.classList.add('muted');
     newsCount.textContent = '0 Artikel';
@@ -167,9 +166,9 @@ const setNewsItems = (items) => {
   }
 
   newsItems.classList.remove('muted');
-  newsCount.textContent = `${limitedItems.length} Artikel`;
+  newsCount.textContent = `${visibleItems.length} Artikel`;
 
-  limitedItems.forEach((item) => {
+  visibleItems.forEach((item) => {
     const card = document.createElement('article');
     card.className = 'news-item';
 
@@ -208,16 +207,6 @@ const setNewsItems = (items) => {
   });
 };
 
-const mapStoredNewsItems = (items) =>
-  (items || []).map((item) => ({
-    id: item.id,
-    title: item.title,
-    link: item.url,
-    publishedAt: item.published_at,
-    source: item.source,
-    summary: item.content,
-  }));
-
 const mergeNewsItems = (feeds) => {
   const items = feeds.flatMap((feed) =>
     (feed.items || []).map((item) => ({
@@ -240,38 +229,6 @@ const mergeNewsItems = (feeds) => {
     });
 };
 
-const fetchStoredNewsItems = async () => {
-  const response = await fetch('/api/news/items');
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.error || 'Gespeicherte News konnten nicht geladen werden.');
-  }
-  return mapStoredNewsItems(data.items || []);
-};
-
-const saveNewsItems = async (items) => {
-  if (!items.length) return;
-  const response = await fetch('/api/news/items', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      items: items.map((item) => ({
-        id: item.link || item.id,
-        title: item.title,
-        content: item.summary || item.title,
-        url: item.link,
-        published_at: item.publishedAt,
-        source: item.source,
-      })),
-    }),
-  });
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.error || 'News konnten nicht gespeichert werden.');
-  }
-  return data;
-};
-
 const fetchFeedPreview = async (feed) => {
   const response = await fetch(`/api/news/preview?url=${encodeURIComponent(feed.url)}`);
   const data = await response.json();
@@ -292,13 +249,7 @@ const refreshNews = async () => {
   const feeds = readStored(FEED_STORAGE_KEY).filter((feed) => feed.active);
   if (!feeds.length) {
     setStatus(newsStatus, 'Keine aktiven Feeds vorhanden.', 'danger');
-    try {
-      const stored = await fetchStoredNewsItems();
-      allNewsItems = stored;
-      setNewsItems(stored);
-    } catch (error) {
-      setNewsItems([]);
-    }
+    setNewsItems([]);
     return;
   }
 
@@ -308,20 +259,12 @@ const refreshNews = async () => {
   try {
     const results = await Promise.all(feeds.map((feed) => fetchFeedPreview(feed)));
     const merged = mergeNewsItems(results);
-    await saveNewsItems(merged);
-    const stored = await fetchStoredNewsItems();
-    allNewsItems = stored;
-    setNewsItems(stored);
+    allNewsItems = merged;
+    setNewsItems(merged);
     setStatus(newsStatus, `Aktualisiert: ${results.length} aktive Feeds`);
   } catch (error) {
     setStatus(newsStatus, error.message, 'danger');
-    try {
-      const stored = await fetchStoredNewsItems();
-      allNewsItems = stored;
-      setNewsItems(stored);
-    } catch (loadError) {
-      setNewsItems([]);
-    }
+    setNewsItems([]);
   } finally {
     refreshButton.disabled = false;
   }
@@ -502,13 +445,4 @@ renderFeedList(readStored(FEED_STORAGE_KEY));
 renderTopics(readStored(TOPIC_STORAGE_KEY));
 allNewsItems = [];
 setNewsItems([]);
-fetchStoredNewsItems()
-  .then((stored) => {
-    allNewsItems = stored;
-    setNewsItems(stored);
-  })
-  .catch(() => {
-    allNewsItems = [];
-    setNewsItems([]);
-  });
 loadTopics();

@@ -12,7 +12,7 @@ function ensureStoreFile() {
     fs.mkdirSync(dir, { recursive: true });
   }
   if (!fs.existsSync(STORE_PATH)) {
-    const initial = { topics: [], posts: [], drafts: [], news: [] };
+    const initial = { topics: [], posts: [], drafts: [] };
     fs.writeFileSync(STORE_PATH, JSON.stringify(initial, null, 2), ENCODING);
   }
 }
@@ -32,10 +32,6 @@ function readStore() {
   }
   if (!Array.isArray(parsed.drafts)) {
     parsed.drafts = [];
-    changed = true;
-  }
-  if (!Array.isArray(parsed.news)) {
-    parsed.news = [];
     changed = true;
   }
   if (changed) {
@@ -306,102 +302,6 @@ function updatePostDraftStatus(draftId, status) {
   return draft;
 }
 
-function normalizeNewsItem(item = {}) {
-  const url = String(item.url || item.link || '').trim();
-  const id = String(item.id || item.guid || url).trim();
-  if (!id || !url) {
-    return null;
-  }
-  const title = String(item.title || '').trim();
-  const content = String(item.content || item.summary || item.description || '').trim();
-  const publishedAt = String(item.published_at || item.publishedAt || '').trim();
-  const source = String(item.source || '').trim();
-  return {
-    id,
-    url,
-    title,
-    content,
-    published_at: publishedAt,
-    source,
-  };
-}
-
-function getNewsItems(filters = {}) {
-  const store = readStore();
-  const { used, discarded } = filters;
-  return store.news.filter((item) => {
-    if (typeof used === 'boolean' && item.used !== used) return false;
-    if (typeof discarded === 'boolean' && item.discarded !== discarded) return false;
-    return true;
-  });
-}
-
-function upsertNewsItems(items = []) {
-  const store = readStore();
-  const now = new Date().toISOString();
-  const normalizedItems = Array.isArray(items)
-    ? items.map(normalizeNewsItem).filter(Boolean)
-    : [];
-  const byId = new Map(store.news.map((item) => [item.id, item]));
-  normalizedItems.forEach((item) => {
-    const existing = byId.get(item.id);
-    if (existing) {
-      existing.title = item.title || existing.title;
-      existing.content = item.content || existing.content;
-      existing.url = item.url || existing.url;
-      existing.published_at = item.published_at || existing.published_at;
-      existing.source = item.source || existing.source;
-      byId.set(item.id, existing);
-    } else {
-      byId.set(item.id, {
-        ...item,
-        created_at: now,
-        used: false,
-        discarded: false,
-      });
-    }
-  });
-  store.news = Array.from(byId.values());
-  writeStore(store);
-  return normalizedItems;
-}
-
-function findNewsItem(idOrUrl) {
-  if (!idOrUrl) return null;
-  const store = readStore();
-  return (
-    store.news.find((item) => item.id === idOrUrl) ||
-    store.news.find((item) => item.url === idOrUrl)
-  );
-}
-
-function updateNewsItemStatus(idOrUrl, updates = {}) {
-  if (!idOrUrl) return null;
-  const store = readStore();
-  const index = store.news.findIndex((item) => item.id === idOrUrl || item.url === idOrUrl);
-  if (index === -1) {
-    return null;
-  }
-  const item = store.news[index];
-  if (typeof updates.used === 'boolean') {
-    item.used = updates.used;
-  }
-  if (typeof updates.discarded === 'boolean') {
-    item.discarded = updates.discarded;
-  }
-  store.news[index] = item;
-  writeStore(store);
-  return item;
-}
-
-function markNewsItemUsed(idOrUrl) {
-  return updateNewsItemStatus(idOrUrl, { used: true });
-}
-
-function markNewsItemDiscarded(idOrUrl) {
-  return updateNewsItemStatus(idOrUrl, { discarded: true });
-}
-
 module.exports = {
   getTopics,
   getTopic,
@@ -417,9 +317,4 @@ module.exports = {
   addPostDraft,
   updatePostDraft,
   updatePostDraftStatus,
-  getNewsItems,
-  upsertNewsItems,
-  findNewsItem,
-  markNewsItemUsed,
-  markNewsItemDiscarded,
 };

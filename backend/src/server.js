@@ -27,7 +27,6 @@ const { parseFeed } = require('./news');
 const { getDraftThemes, getDraftTheme } = require('./draftConfig');
 const { generateDraft, approveDraft, discardDraft, editDraft, getDraftsForTheme } =
   require('./postDrafts');
-const { getNewsItems, upsertNewsItems } = require('./store');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -296,31 +295,6 @@ app.get('/api/news/preview', async (req, res) => {
     clearTimeout(timeout);
     return res.status(500).json({ error: 'feed request failed', detail: err.message });
   }
-});
-
-app.get('/api/news/items', (req, res) => {
-  const used = req.query.used;
-  const discarded = req.query.discarded;
-  const filters = {};
-  if (used === 'true' || used === 'false') {
-    filters.used = used === 'true';
-  }
-  if (discarded === 'true' || discarded === 'false') {
-    filters.discarded = discarded === 'true';
-  }
-  const items = getNewsItems(filters).sort(
-    (a, b) => Date.parse(b.published_at || '') - Date.parse(a.published_at || '')
-  );
-  return res.json({ items });
-});
-
-app.post('/api/news/items', (req, res) => {
-  const { items } = req.body || {};
-  if (!Array.isArray(items) || !items.length) {
-    return res.status(400).json({ error: 'items are required' });
-  }
-  const added = upsertNewsItems(items);
-  return res.json({ added: added.length });
 });
 
 app.delete('/api/posts/:id', (req, res) => {
