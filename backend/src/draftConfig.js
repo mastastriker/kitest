@@ -1,7 +1,7 @@
-const THEMES = {
+const { getThemes, getTheme } = require('./store');
+
+const THEME_PROPERTIES = {
   crypto: {
-    id: 'crypto',
-    label: 'Crypto',
     allowed_properties: [
       {
         id: 'kritisch',
@@ -26,8 +26,6 @@ const THEMES = {
     ],
   },
   camping: {
-    id: 'camping',
-    label: 'Camping',
     allowed_properties: [
       {
         id: 'kritisch',
@@ -53,18 +51,30 @@ const THEMES = {
   },
 };
 
-const THEME_LIST = Object.values(THEMES);
+function buildDraftTheme(theme) {
+  if (!theme) return null;
+  const config = THEME_PROPERTIES[theme.key] || { allowed_properties: [] };
+  return {
+    id: theme.id,
+    key: theme.key,
+    label: theme.name,
+    active: theme.active,
+    allowed_properties: config.allowed_properties || [],
+  };
+}
 
 function getDraftThemes() {
-  return THEME_LIST.map((theme) => ({
-    id: theme.id,
-    label: theme.label,
-    allowed_properties: theme.allowed_properties,
-  }));
+  return getThemes()
+    .filter((theme) => theme.active)
+    .map((theme) => buildDraftTheme(theme));
 }
 
 function getDraftTheme(themeId) {
-  return THEMES[themeId] || null;
+  const theme = getTheme(themeId);
+  if (!theme || !theme.active) {
+    return null;
+  }
+  return buildDraftTheme(theme);
 }
 
 module.exports = {

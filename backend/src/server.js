@@ -13,6 +13,12 @@ const {
   updatePost,
   updatePostWithPrompt,
   deleteTopic,
+  getThemes,
+  getTheme,
+  addTheme,
+  updateTheme,
+  deleteTheme,
+  getPostDrafts,
 } = require('./store');
 const { getPostProperties } = require('./postProperties');
 const {
@@ -59,6 +65,29 @@ function parsePromptText(promptText) {
   return { system: match[1].trim(), user: match[2].trim() };
 }
 
+function getThemeSummary() {
+  const themes = getThemes();
+  const drafts = getPostDrafts();
+  const counts = drafts.reduce((acc, draft) => {
+    const key = draft.theme_id;
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+  return themes.map((theme) => ({
+    ...theme,
+    draft_count: counts[theme.id] || 0,
+  }));
+}
+
+function decorateDraft(draft) {
+  const theme = getTheme(draft.theme_id);
+  return {
+    ...draft,
+    theme: theme?.name || theme?.key || draft.theme_id,
+    theme_key: theme?.key || draft.theme_id,
+  };
+}
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
@@ -67,6 +96,47 @@ app.get('/api/post-properties', (req, res) => {
   res.json({
     properties: getPostProperties().map(({ id, label }) => ({ id, label })),
   });
+});
+
+app.get('/api/themes', (req, res) => {
+  res.json({ themes: getThemeSummary() });
+});
+
+app.post('/api/themes', (req, res) => {
+  const { key, name } = req.body || {};
+  if (!key || !name) {
+    return res.status(400).json({ error: 'key and name are required' });
+  }
+  try {
+    const theme = addTheme({ key, name });
+    return res.status(201).json({ theme });
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+app.put('/api/themes/:id', (req, res) => {
+  try {
+    const theme = updateTheme(req.params.id, req.body || {});
+    if (!theme) {
+      return res.status(404).json({ error: 'theme not found' });
+    }
+    return res.json({ theme });
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete('/api/themes/:id', (req, res) => {
+  try {
+    const removed = deleteTheme(req.params.id);
+    if (!removed) {
+      return res.status(404).json({ error: 'theme not found' });
+    }
+    return res.json({ theme: removed });
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
 });
 
 app.get('/api/topics', (req, res) => {
@@ -213,14 +283,12 @@ app.get('/api/post-drafts/themes', (req, res) => {
 
 app.get('/api/post-drafts', (req, res) => {
   const { theme } = req.query || {};
-  if (theme && !getDraftTheme(theme)) {
+  if (theme && !getTheme(theme)) {
     return res.status(400).json({ error: 'theme is invalid' });
   }
-  const drafts = theme
-    ? getDraftsForTheme(theme)
-    : getDraftsForTheme('crypto').concat(getDraftsForTheme('camping'));
+  const drafts = theme ? getDraftsForTheme(theme) : getPostDrafts();
   drafts.sort((a, b) => Date.parse(b.created_at || '') - Date.parse(a.created_at || ''));
-  return res.json({ drafts });
+  return res.json({ drafts: drafts.map((draft) => decorateDraft(draft)) });
 });
 
 app.post('/api/post-drafts/generate', async (req, res) => {
@@ -233,7 +301,7 @@ app.post('/api/post-drafts/generate', async (req, res) => {
   }
   try {
     const draft = await generateDraft(theme, { mode, article, candidates });
-    return res.json({ draft });
+    return res.json({ draft: decorateDraft(draft) });
   } catch (err) {
     return res.status(400).json({ error: err.message });
   }
@@ -249,7 +317,7 @@ app.post('/api/post-drafts/:id/approve', (req, res) => {
   if (!draft) {
     return res.status(404).json({ error: 'draft not found' });
   }
-  return res.json({ draft });
+  return res.json({ draft: decorateDraft(draft) });
 });
 
 app.post('/api/post-drafts/:id/discard', (req, res) => {
@@ -257,7 +325,7 @@ app.post('/api/post-drafts/:id/discard', (req, res) => {
   if (!draft) {
     return res.status(404).json({ error: 'draft not found' });
   }
-  return res.json({ draft });
+  return res.json({ draft: decorateDraft(draft) });
 });
 
 app.put('/api/post-drafts/:id', (req, res) => {
@@ -267,7 +335,7 @@ app.put('/api/post-drafts/:id', (req, res) => {
     if (!draft) {
       return res.status(404).json({ error: 'draft not found' });
     }
-    return res.json({ draft });
+    return res.json({ draft: decorateDraft(draft) });
   } catch (err) {
     return res.status(400).json({ error: err.message });
   }
@@ -278,7 +346,7 @@ app.delete('/api/post-drafts/:id', (req, res) => {
   if (!removed) {
     return res.status(404).json({ error: 'draft not found' });
   }
-  return res.json({ draft: removed });
+  return res.json({ draft: decorateDraft(removed) });
 });
 
 app.get('/api/news/preview', async (req, res) => {

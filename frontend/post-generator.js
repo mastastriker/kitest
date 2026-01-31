@@ -28,10 +28,25 @@ const readStored = (key) => {
 
 const renderThemes = () => {
   themeSelect.innerHTML = '';
+  if (!themes.length) {
+    const option = document.createElement('option');
+    option.value = '';
+    option.textContent = 'Keine aktiven Themen verfügbar';
+    themeSelect.appendChild(option);
+    themeSelect.disabled = true;
+    if (submitButton) {
+      submitButton.disabled = true;
+    }
+    return;
+  }
+  themeSelect.disabled = false;
+  if (submitButton && !isGenerating) {
+    submitButton.disabled = false;
+  }
   themes.forEach((theme) => {
     const option = document.createElement('option');
     option.value = theme.id;
-    option.textContent = theme.label;
+    option.textContent = theme.label || theme.name;
     themeSelect.appendChild(option);
   });
 };

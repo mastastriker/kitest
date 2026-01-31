@@ -12,7 +12,7 @@ function ensureStoreFile() {
     fs.mkdirSync(dir, { recursive: true });
   }
   if (!fs.existsSync(STORE_PATH)) {
-    const initial = { topics: [], posts: [], drafts: [] };
+    const initial = { topics: [], posts: [], drafts: [], themes: [] };
     fs.writeFileSync(STORE_PATH, JSON.stringify(initial, null, 2), ENCODING);
   }
 }
@@ -34,6 +34,13 @@ function readStore() {
     parsed.drafts = [];
     changed = true;
   }
+  if (!Array.isArray(parsed.themes)) {
+    parsed.themes = [];
+    changed = true;
+  }
+  if (normalizeThemes(parsed)) {
+    changed = true;
+  }
   if (changed) {
     writeStore(parsed);
   }
@@ -46,6 +53,100 @@ function writeStore(data) {
 
 function generateId(prefix = 'id') {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+}
+
+const DEFAULT_THEME_NAMES = {
+  crypto: 'Crypto',
+  camping: 'Camping',
+};
+
+function normalizeThemeKey(key) {
+  return String(key || '').trim();
+}
+
+function normalizeThemes(store) {
+  let changed = false;
+  if (!Array.isArray(store.themes)) {
+    store.themes = [];
+    changed = true;
+  }
+  const draftThemeKeys = new Set();
+  store.drafts.forEach((draft) => {
+    if (draft.theme && !draft.theme_id) {
+      draft.theme_id = draft.theme;
+      changed = true;
+    }
+    if (draft.theme_id) {
+      draftThemeKeys.add(draft.theme_id);
+    }
+    if (Object.prototype.hasOwnProperty.call(draft, 'theme')) {
+      delete draft.theme;
+      changed = true;
+    }
+  });
+
+  const normalizedThemes = [];
+  const seenKeys = new Set();
+  store.themes.forEach((theme) => {
+    const key = normalizeThemeKey(theme.key || theme.id);
+    if (!key || seenKeys.has(key)) {
+      changed = true;
+      return;
+    }
+    seenKeys.add(key);
+    const name = String(theme.name || DEFAULT_THEME_NAMES[key] || key).trim();
+    const createdAt = theme.created_at || theme.createdAt || new Date().toISOString();
+    const normalized = {
+      id: theme.id || key,
+      key,
+      name,
+      active: theme.active !== false,
+      created_at: createdAt,
+    };
+    normalizedThemes.push(normalized);
+    if (
+      theme.id !== normalized.id ||
+      theme.key !== normalized.key ||
+      theme.name !== normalized.name ||
+      theme.created_at !== normalized.created_at ||
+      theme.active !== normalized.active
+    ) {
+      changed = true;
+    }
+  });
+  store.themes = normalizedThemes;
+
+  if (!store.themes.length) {
+    const seedKeys = draftThemeKeys.size
+      ? Array.from(draftThemeKeys)
+      : Object.keys(DEFAULT_THEME_NAMES);
+    store.themes = seedKeys.map((key) => ({
+      id: key,
+      key,
+      name: DEFAULT_THEME_NAMES[key] || key,
+      active: true,
+      created_at: new Date().toISOString(),
+    }));
+    changed = true;
+  }
+
+  const existingKeys = new Set(store.themes.map((theme) => theme.key));
+  draftThemeKeys.forEach((key) => {
+    if (existingKeys.has(key)) {
+      return;
+    }
+    store.themes.push({
+      id: key,
+      key,
+      name: DEFAULT_THEME_NAMES[key] || key,
+      active: true,
+      created_at: new Date().toISOString(),
+    });
+    existingKeys.add(key);
+    changed = true;
+  });
+
+  return changed;
 }
 
 function applyPromptDefaults(topic) {
@@ -133,6 +234,81 @@ function addPosts(topicId, entries, defaults = {}) {
 function getPostsForTopic(topicId) {
   const store = readStore();
   return store.posts.filter((p) => p.topicId === topicId);
+}
+
+function getThemes() {
+  const store = readStore();
+  return store.themes.map((theme) => ({ ...theme }));
+}
+
+function getTheme(themeId) {
+  const store = readStore();
+  return store.themes.find((theme) => theme.id === themeId) || null;
+}
+
+function addTheme({ key, name, active }) {
+  const trimmedKey = normalizeThemeKey(key).toLowerCase();
+  if (!trimmedKey) {
+    throw new Error('Theme key is required');
+  }
+  if (!/^[a-z0-9-]+$/.test(trimmedKey)) {
+    throw new Error('Theme key must contain only lowercase letters, numbers, or hyphens');
+  }
+  const trimmedName = String(name || '').trim();
+  if (!trimmedName) {
+    throw new Error('Theme name is required');
+  }
+  const store = readStore();
+  if (store.themes.some((theme) => theme.key === trimmedKey)) {
+    throw new Error('Theme key must be unique');
+  }
+  const created = {
+    id: trimmedKey,
+    key: trimmedKey,
+    name: trimmedName,
+    active: active !== false,
+    created_at: new Date().toISOString(),
+  };
+  store.themes.push(created);
+  writeStore(store);
+  return { ...created };
+}
+
+function updateTheme(themeId, updates = {}) {
+  const store = readStore();
+  const index = store.themes.findIndex((theme) => theme.id === themeId);
+  if (index === -1) {
+    return null;
+  }
+  const theme = store.themes[index];
+  if (typeof updates.name === 'string') {
+    const trimmed = updates.name.trim();
+    if (!trimmed) {
+      throw new Error('Theme name is required');
+    }
+    theme.name = trimmed;
+  }
+  if (typeof updates.active === 'boolean') {
+    theme.active = updates.active;
+  }
+  store.themes[index] = theme;
+  writeStore(store);
+  return { ...theme };
+}
+
+function deleteTheme(themeId) {
+  const store = readStore();
+  const index = store.themes.findIndex((theme) => theme.id === themeId);
+  if (index === -1) {
+    return null;
+  }
+  const referenced = store.drafts.some((draft) => draft.theme_id === themeId);
+  if (referenced) {
+    throw new Error('Theme has drafts');
+  }
+  const [removed] = store.themes.splice(index, 1);
+  writeStore(store);
+  return { ...removed };
 }
 
 function updateTopic(topicId, updates = {}) {
@@ -237,7 +413,7 @@ function getPostDrafts(filters = {}) {
   const store = readStore();
   const { theme, status } = filters;
   return store.drafts.filter((draft) => {
-    if (theme && draft.theme !== theme) return false;
+    if (theme && draft.theme_id !== theme) return false;
     if (status && draft.status !== status) return false;
     return true;
   });
@@ -248,7 +424,7 @@ function addPostDraft(draft) {
   const now = new Date().toISOString();
   const created = {
     id: generateId('draft'),
-    theme: draft.theme,
+    theme_id: draft.theme_id,
     content: draft.content,
     status: draft.status || 'generated',
     source_type: draft.source_type,
@@ -341,4 +517,9 @@ module.exports = {
   updatePostDraftStatus,
   deletePostDraft,
   deletePostDraftsByStatus,
+  getThemes,
+  getTheme,
+  addTheme,
+  updateTheme,
+  deleteTheme,
 };

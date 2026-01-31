@@ -282,7 +282,7 @@ async function generateDraftForTheme(themeId, payload) {
       throw new Error('Trend-Idee war nicht stark genug');
     }
     return addPostDraft({
-      theme: themeId,
+      theme_id: themeId,
       content: draft.content,
       status: 'generated',
       source_type: 'trend',
@@ -307,7 +307,7 @@ async function generateDraftForTheme(themeId, payload) {
     throw new Error('Artikel ist für einen Draft nicht stark genug.');
   }
   return addPostDraft({
-    theme: themeId,
+    theme_id: themeId,
     content: generated.content,
     status: 'generated',
     source_type: sourceType,
@@ -327,7 +327,7 @@ async function generateDraftFromCandidates(themeId, candidates) {
         continue;
       }
       return addPostDraft({
-        theme: themeId,
+        theme_id: themeId,
         content: draft.content,
         status: 'generated',
         source_type: 'rss',

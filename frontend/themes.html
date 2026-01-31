@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Themen</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="theme-toggle">
+      <span>Dark Mode</span>
+      <label class="switch">
+        <input id="theme-toggle" type="checkbox" />
+        <span class="slider"></span>
+      </label>
+    </div>
+    <main class="page">
+      <nav class="primary-nav" aria-label="Hauptnavigation">
+        <a class="nav-home" href="index.html" aria-label="Post Generator">🏠</a>
+        <a href="index.html">Post Generator</a>
+        <a href="drafts.html">Entwürfe &amp; Freigabe</a>
+        <a href="posts.html">Posts Übersicht</a>
+        <a href="news.html">News</a>
+        <a class="is-active" href="themes.html" aria-current="page">Themen</a>
+      </nav>
+      <header>
+        <h1>Themen</h1>
+        <p class="lede">Verwalte aktive Themen für den Post-Generator.</p>
+      </header>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Neues Thema</h2>
+        </div>
+        <form id="theme-form" class="stack">
+          <label>
+            Technischer Schlüssel
+            <input id="theme-key" type="text" placeholder="z. B. crypto" required />
+          </label>
+          <label>
+            Anzeigename
+            <input id="theme-name" type="text" placeholder="z. B. Crypto" required />
+          </label>
+          <button type="submit">Thema anlegen</button>
+        </form>
+        <p id="theme-form-status" class="muted small" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Alle Themen</h2>
+          <span id="theme-count" class="badge">0</span>
+        </div>
+        <div id="theme-list" class="theme-list muted">Noch keine Themen vorhanden.</div>
+      </section>
+    </main>
+    <script src="theme.js"></script>
+    <script src="themes.js"></script>
+  </body>
+</html>
