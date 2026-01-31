@@ -25,8 +25,15 @@ const {
 const { generateTrendsForTopic, MODE_MAP, clampCount, buildTrendPrompt } = require('./trends');
 const { parseFeed } = require('./news');
 const { getDraftThemes, getDraftTheme } = require('./draftConfig');
-const { generateDraft, approveDraft, discardDraft, editDraft, getDraftsForTheme } =
-  require('./postDrafts');
+const {
+  generateDraft,
+  approveDraft,
+  discardDraft,
+  editDraft,
+  getDraftsForTheme,
+  deleteDraft,
+  clearArchivedDrafts,
+} = require('./postDrafts');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -232,6 +239,11 @@ app.post('/api/post-drafts/generate', async (req, res) => {
   }
 });
 
+app.delete('/api/post-drafts/archived', (req, res) => {
+  const removed = clearArchivedDrafts();
+  return res.json({ removed });
+});
+
 app.post('/api/post-drafts/:id/approve', (req, res) => {
   const draft = approveDraft(req.params.id);
   if (!draft) {
@@ -259,6 +271,14 @@ app.put('/api/post-drafts/:id', (req, res) => {
   } catch (err) {
     return res.status(400).json({ error: err.message });
   }
+});
+
+app.delete('/api/post-drafts/:id', (req, res) => {
+  const removed = deleteDraft(req.params.id);
+  if (!removed) {
+    return res.status(404).json({ error: 'draft not found' });
+  }
+  return res.json({ draft: removed });
 });
 
 app.get('/api/news/preview', async (req, res) => {

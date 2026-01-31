@@ -1,6 +1,7 @@
 const draftsList = document.getElementById('drafts-list');
 const draftsCount = document.getElementById('drafts-count');
 const draftsHeading = document.getElementById('drafts-heading');
+const archiveClearButton = document.getElementById('archive-clear');
 const tabButtons = document.querySelectorAll('.tab-button');
 
 const state = {
@@ -14,6 +15,12 @@ const statusLabels = {
   discarded: 'Verworfen',
   posted: 'Gepostet',
   scheduled: 'Geplant',
+};
+
+const emptyMessages = {
+  generated: 'Keine Entwürfe vorhanden.',
+  approved: 'Keine freigegebenen Posts.',
+  archived: 'Archiv ist leer.',
 };
 
 const setActiveTab = (tab) => {
@@ -75,6 +82,29 @@ const discardDraft = async (id) => {
   renderDrafts();
 };
 
+const deleteDraft = async (id) => {
+  const res = await fetch(`/api/post-drafts/${id}`, { method: 'DELETE' });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Löschen fehlgeschlagen.');
+  }
+  state.drafts = state.drafts.filter((draft) => draft.id !== id);
+  renderDrafts();
+};
+
+const clearArchivedDrafts = async () => {
+  const res = await fetch('/api/post-drafts/archived', { method: 'DELETE' });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Archiv leeren fehlgeschlagen.');
+  }
+  const removedIds = new Set((data.removed || []).map((draft) => draft.id));
+  if (removedIds.size) {
+    state.drafts = state.drafts.filter((draft) => !removedIds.has(draft.id));
+  }
+  renderDrafts();
+};
+
 const filterDrafts = () => {
   if (state.activeTab === 'approved') {
     return state.drafts.filter((draft) => draft.status === 'approved');
@@ -88,8 +118,14 @@ const filterDrafts = () => {
 const renderDrafts = () => {
   const drafts = filterDrafts();
   draftsCount.textContent = `${drafts.length}`;
+  if (archiveClearButton) {
+    const hasArchived = state.drafts.some((draft) => draft.status === 'discarded');
+    archiveClearButton.hidden = state.activeTab !== 'archived';
+    archiveClearButton.disabled = !hasArchived;
+  }
   if (!drafts.length) {
-    draftsList.innerHTML = '<p class="muted">Keine Entwürfe vorhanden.</p>';
+    const message = emptyMessages[state.activeTab] || emptyMessages.generated;
+    draftsList.innerHTML = `<p class="muted">${message}</p>`;
     return;
   }
   draftsList.innerHTML = '';
@@ -169,6 +205,19 @@ const renderDrafts = () => {
       actions.appendChild(discardButton);
     }
 
+    if (state.activeTab === 'archived' && draft.status === 'discarded') {
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.className = 'ghost danger';
+      deleteButton.textContent = 'Löschen';
+      deleteButton.addEventListener('click', () => {
+        if (window.confirm('Archivierten Draft endgültig löschen?')) {
+          deleteDraft(draft.id);
+        }
+      });
+      actions.appendChild(deleteButton);
+    }
+
     card.append(meta, text, source, actions);
     draftsList.appendChild(card);
   });
@@ -177,6 +226,16 @@ const renderDrafts = () => {
 tabButtons.forEach((button) => {
   button.addEventListener('click', () => setActiveTab(button.dataset.tab));
 });
+
+if (archiveClearButton) {
+  archiveClearButton.addEventListener('click', () => {
+    if (window.confirm('Archiv endgültig leeren?')) {
+      clearArchivedDrafts().catch((error) => {
+        draftsList.innerHTML = `<p class="muted">Fehler: ${error.message}</p>`;
+      });
+    }
+  });
+}
 
 fetchDrafts().catch((error) => {
   draftsList.innerHTML = `<p class="muted">Fehler: ${error.message}</p>`;
