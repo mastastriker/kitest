@@ -82,6 +82,29 @@ const discardDraft = async (id) => {
   renderDrafts();
 };
 
+const copyDraftForX = async (draft) => {
+  const text = draft.content || '';
+  if (!text) {
+    alert('Kein Text zum Kopieren gefunden.');
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    alert('Für X kopiert.');
+  } catch (error) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'absolute';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    alert('Für X kopiert.');
+  }
+};
+
 const deleteDraft = async (id) => {
   const res = await fetch(`/api/post-drafts/${id}`, { method: 'DELETE' });
   const data = await res.json();
@@ -162,6 +185,15 @@ const renderDrafts = () => {
       approveButton.textContent = 'Freigeben';
       approveButton.addEventListener('click', () => approveDraft(draft.id));
       actions.appendChild(approveButton);
+    }
+
+    if (draft.status === 'approved') {
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'ghost';
+      copyButton.textContent = 'Für X kopieren';
+      copyButton.addEventListener('click', () => copyDraftForX(draft));
+      actions.appendChild(copyButton);
     }
 
     if (draft.status === 'generated' || draft.status === 'approved') {

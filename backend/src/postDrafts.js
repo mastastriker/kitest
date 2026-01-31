@@ -69,76 +69,62 @@ function normalizeArticle(article) {
   };
 }
 
-function buildAnalysisPrompt(theme, article) {
+function buildDraftPrompt(theme, article, sourceType) {
   const system = [
-    'Du bist Redakteur für X-Posts.',
-    'Bewerte Artikel streng nach Relevanz für das Thema.',
-    'Antwort-Format: JSON ohne zusätzlichen Text.',
+    'Du schreibst X-Posts für ENGAGER v2.',
+    'Befolge die Pipeline strikt und gib nur JSON zurück.',
   ].join(' ');
+
+  const sourceLine =
+    sourceType === 'trend'
+      ? `Trend: ${article.content}`
+      : `Quelle: ${article.source || 'RSS'}`;
+  const linkLine = sourceType === 'trend' ? '' : `Link: ${article.link}`;
 
   const user = [
     `Thema: ${theme.label}`,
-    `Titel: ${article.title}`,
-    `Inhalt: ${article.content}`,
-    'Bewerte mit Scores 0 bis 3 (0 = schwach, 3 = sehr stark).',
-    'Felder: recency, theme_fit, conflict, novelty, discussion, total_score, key_takeaway.',
-    'total_score ist die Summe der fünf Scores.',
-    'key_takeaway ist eine knappe Kernaussage in einem Satz.',
-  ].join('\n');
-
-  return { system, user };
-}
-
-function buildIdeaPrompt(theme, analysis) {
-  const propertyHints = theme.allowed_properties.map((item) => item.prompt).join(' ');
-  const system = [
-    'Du bist Redakteur und formulierst Post-Ideen für X.',
-    'Antwort-Format: JSON mit Feld "idea". Kein zusätzlicher Text.',
-  ].join(' ');
-
-  const user = [
-    `Thema: ${theme.label}`,
-    `Kernaussage: ${analysis.key_takeaway}`,
-    `Eigenschaften: ${propertyHints}`,
-    'Formuliere eine klare These mit Blickwinkel.',
-    'Keine Zusammenfassung des Artikels.',
-    'Meinungsstark, roh, kurz.',
-  ].join('\n');
-
-  return { system, user };
-}
-
-function buildRewritePrompt(theme, article, idea, includeLink) {
-  const propertyHints = theme.allowed_properties.map((item) => item.prompt).join(' ');
-  const system = [
-    'Du bist Social Editor für X.',
-    'Ziel: menschlich, glaubwürdig, X-tauglich.',
-    'Antwort-Format: JSON mit Feldern "text" und "link". Kein zusätzlicher Text.',
-  ].join(' ');
-
-  const linkLine = includeLink && article.link ? `Link: ${article.link}` : '';
-  const sourceLine = article.source ? `Quelle: ${article.source}` : '';
-  const user = [
-    `Thema: ${theme.label}`,
-    `These: ${idea}`,
     `Titel: ${article.title}`,
     `Inhalt: ${article.content}`,
     sourceLine,
     linkLine,
-    propertyHints ? `Eigenschaften: ${propertyHints}` : '',
-    'Text zuerst vollständig formulieren, Link separat liefern.',
-    'Der Text darf keine URLs enthalten.',
-    'Der Link darf nur die URL enthalten und muss vollständig sein.',
-    'Kürze bei Bedarf den Inhalt, aber niemals Sätze oder Links abschneiden.',
-    'Keine harten Zeichenlimits, aber halte dich an die X-Grenze (280 Zeichen).',
-    'KONKRETE Bezüge zu Akteuren, Ereignis oder Quelle.',
-    'Keine Emojis, keine Aufzählungen, keine Floskeln.',
-    'Keine Meta-Sprache.',
-    'Keine Gedankenstriche, kein "-" oder "–".',
-    'Keine abstrakten Verben wie "ignorieren" oder "thematisieren".',
-    'Kurze, klare Sätze.',
-    includeLink && article.link ? 'Der Link muss geliefert werden.' : '',
-    'Antwort im JSON-Format: {"text": "...", "link": "https://..." }',
+    '',
+    'SCHRITT 1 – INTERNE ANALYSE (NICHT AUSGEBEN)',
+    '- Kernaussage des Inhalts',
+    '- Wer profitiert vom Narrativ',
+    '- Wo liegt Macht, Kontrolle oder Selbsttäuschung',
+    '- Wie kann eine pro-Krypto-Haltung formuliert werden',
+    '- KEINE Neutralität',
+    '- KEINE Zusammenfassung',
+    '',
+    'SCHRITT 2 – STIL-MODUL (NICHT AUSGEBEN)',
+    'Wähle intern GENAU EIN Modul zufällig:',
+    '1) Überzeugt-pro-Krypto',
+    '2) Skeptisch gegenüber Macht',
+    '3) Persönliche Einschätzung (max. 1 Ich-Satz)',
+    '4) Entlarvend',
+    '5) Leser-Spiegel',
+    'Keine Kombination.',
+    'Modul niemals nennen oder erklären.',
+    '',
+    'SCHRITT 3 – FINALER X-POST (AUSGABE)',
+    '- Maximal 280 Zeichen',
+    '- Kurze Sätze',
+    '- Keine Floskeln',
+    '- Keine Meta-Sprache',
+    '- Keine Erklärungen',
+    '- Keine Fremdwörter oder Metaphern',
+    '- Keine Mehrfachfragen',
+    '- Ich-Sätze NUR bei Modul 3 (max. 1)',
+    '',
+    'STRUKTUR:',
+    '- Text zuerst',
+    '- Danach Quelle oder Link in eigener Zeile',
+    '',
+    'QUELLENREGELN:',
+    '- RSS: genau EIN echter Link, vollständige URL',
+    '- Trend: kein externer Link, stattdessen: "Quelle: <Trendbeschreibung>"',
+    '',
+    'Antwort-Format: {"text": "POST TEXT\\n\\nQUELLE ODER LINK"}',
   ]
     .filter(Boolean)
     .join('\n');
@@ -169,51 +155,27 @@ async function runOpenAiJson(prompt) {
   return parseJsonResponse(content);
 }
 
-async function runAnalysis(theme, article) {
-  const prompt = buildAnalysisPrompt(theme, article);
-  const data = await runOpenAiJson(prompt);
-  if (!data) {
-    throw new Error('Analysis response was invalid');
-  }
-  const total = Number(data.total_score);
-  return {
-    ...data,
-    total_score: Number.isFinite(total) ? total : 0,
-  };
-}
-
-async function runIdea(theme, analysis) {
-  const prompt = buildIdeaPrompt(theme, analysis);
-  const data = await runOpenAiJson(prompt);
-  const idea = String(data?.idea || '').trim();
-  if (!idea) {
-    throw new Error('Idea response was invalid');
-  }
-  return idea;
-}
-
-async function runRewrite(theme, article, idea, includeLink) {
-  const prompt = buildRewritePrompt(theme, article, idea, includeLink);
+async function runDraftPrompt(theme, article, sourceType) {
+  const prompt = buildDraftPrompt(theme, article, sourceType);
   const data = await runOpenAiJson(prompt);
   const text = String(data?.text || '').trim();
-  const link = String(data?.link || '').trim();
-  if (!text || !/[.!?][\"'”’)]?$/.test(text)) {
-    throw new Error('Post text was incomplete');
+  if (!text) {
+    throw new Error('Post text was invalid');
   }
-  if (/https?:\/\//i.test(text)) {
-    throw new Error('Post text was incomplete');
+  if (text.length > 280) {
+    throw new Error('Post text was invalid');
   }
-  if (!link.startsWith('http') || /\s/.test(link)) {
-    throw new Error('Post text was incomplete');
+  if (sourceType === 'trend') {
+    if (/https?:\/\//i.test(text)) {
+      throw new Error('Post text was invalid');
+    }
+    if (!text.includes('Quelle:')) {
+      throw new Error('Post text was invalid');
+    }
+  } else if (!/https?:\/\/\S+/i.test(text)) {
+    throw new Error('Post text was invalid');
   }
-  if (includeLink && !link) {
-    throw new Error('Post text was incomplete');
-  }
-  return `${text}\n\n${link}`;
-}
-
-function enforceNoDashes(text) {
-  return text.replace(/\s[–—]\s/g, '. ').replace(/\s-\s/g, '. ');
+  return text;
 }
 
 async function generateDraftFromArticle(themeId, sourceType, article) {
@@ -227,23 +189,14 @@ async function generateDraftFromArticle(themeId, sourceType, article) {
     throw new Error('Article title and content are required');
   }
 
-  const analysis = await runAnalysis(theme, normalized);
-  if (analysis.total_score < 9) {
-    return { skipped: true, analysis };
-  }
-
-  const idea = await runIdea(theme, analysis);
-  const includeLink = sourceType === 'rss' || sourceType === 'manual';
-  let text = await runRewrite(theme, normalized, idea, includeLink);
-  text = enforceNoDashes(text);
-  if (includeLink && normalized.link && !text.includes(normalized.link)) {
-    throw new Error('Post text was incomplete');
+  const text = await runDraftPrompt(theme, normalized, sourceType);
+  if (sourceType !== 'trend' && normalized.link && !text.includes(normalized.link)) {
+    throw new Error('Post text was invalid');
   }
 
   return {
     skipped: false,
     content: text,
-    analysis,
     source_ref: normalized.link || null,
   };
 }
