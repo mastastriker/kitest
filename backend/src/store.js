@@ -302,6 +302,25 @@ function updatePostDraftStatus(draftId, status) {
   return draft;
 }
 
+function deletePostDrafts({ ids = [], statuses = [] } = {}) {
+  const store = readStore();
+  const idList = Array.isArray(ids) ? ids : [];
+  const statusList = Array.isArray(statuses) ? statuses : statuses ? [statuses] : [];
+  if (!idList.length && !statusList.length) {
+    return [];
+  }
+  const idSet = new Set(idList);
+  const statusSet = new Set(statusList);
+  const removed = store.drafts.filter(
+    (draft) => (idSet.size && idSet.has(draft.id)) || (statusSet.size && statusSet.has(draft.status))
+  );
+  store.drafts = store.drafts.filter(
+    (draft) => !(idSet.size && idSet.has(draft.id)) && !(statusSet.size && statusSet.has(draft.status))
+  );
+  writeStore(store);
+  return removed;
+}
+
 module.exports = {
   getTopics,
   getTopic,
@@ -317,4 +336,5 @@ module.exports = {
   addPostDraft,
   updatePostDraft,
   updatePostDraftStatus,
+  deletePostDrafts,
 };
