@@ -119,7 +119,7 @@ function buildTrendPostPrompt(topic, trend) {
   const baseSystem = topic.prompts?.system || defaults.system;
   const system = [
     baseSystem,
-    'Antwort-Format: JSON mit Feld "post" (String), keine weiteren Felder.',
+    'Antwort-Format: JSON mit Feldern "text" und "link", keine weiteren Felder.',
   ].join(' ');
   const selectedProperties = selectPostProperties(topic);
   const propertyHints = buildPropertyHints(selectedProperties);
@@ -128,11 +128,13 @@ function buildTrendPostPrompt(topic, trend) {
     `Trend-Idee: ${trend}`,
     'Erstelle genau einen prägnanten X-Post auf Deutsch.',
     'Der Post soll eigenständig formuliert sein und nicht nur die Trend-Idee zitieren.',
-    'Halte dich an die X-Grenze (280 Zeichen).',
-    'Kürze bei Bedarf den Inhalt, aber niemals Sätze oder Links.',
-    'Der Link (falls vorhanden) steht in einer eigenen Zeile ganz am Ende und ist vollständig.',
+    'Text zuerst vollständig formulieren, Link separat liefern.',
+    'Der Text darf keine URLs enthalten.',
+    'Der Link darf nur die URL enthalten und muss vollständig sein.',
+    'Kürze bei Bedarf den Inhalt, aber niemals Sätze oder Links abschneiden.',
+    'Keine harten Zeichenlimits, aber halte dich an die X-Grenze (280 Zeichen).',
     'Keine Emojis, keine Hashtags.',
-    'Antwort im JSON-Format: {"post": "..." }',
+    'Antwort im JSON-Format: {"text": "...", "link": "https://..." }',
     propertyHints,
   ]
     .filter(Boolean)
@@ -194,19 +196,56 @@ function safeParsePosts(payload) {
     const json = JSON.parse(payload);
     const posts = json.posts || [];
     return posts
-      .map((p) => (typeof p === 'string' ? p : p?.text))
-      .filter(Boolean)
-      .map((text) => text.trim());
+      .map((entry) => {
+        if (!entry || typeof entry !== 'object') {
+          return null;
+        }
+        const text = typeof entry.text === 'string' ? entry.text.trim() : '';
+        const link = typeof entry.link === 'string' ? entry.link.trim() : '';
+        if (!text || !isCompleteSentence(text)) {
+          return null;
+        }
+        if (/https?:\/\//i.test(text)) {
+          return null;
+        }
+        if (!isValidLink(link)) {
+          return null;
+        }
+        return `${text}\n\n${link}`;
+      })
+      .filter(Boolean);
   } catch (err) {
     return [];
   }
 }
 
+function isCompleteSentence(text) {
+  return /[.!?][\"'”’)]?$/.test(text);
+}
+
+function isValidLink(link) {
+  const trimmed = String(link || '').trim();
+  if (!trimmed) return false;
+  if (!trimmed.startsWith('http')) return false;
+  if (/\s/.test(trimmed)) return false;
+  return true;
+}
+
 function safeParsePost(payload) {
   try {
     const json = JSON.parse(payload);
-    const post = typeof json.post === 'string' ? json.post.trim() : '';
-    return post || null;
+    const text = typeof json.text === 'string' ? json.text.trim() : '';
+    const link = typeof json.link === 'string' ? json.link.trim() : '';
+    if (!text || !isCompleteSentence(text)) {
+      return null;
+    }
+    if (/https?:\/\//i.test(text)) {
+      return null;
+    }
+    if (!isValidLink(link)) {
+      return null;
+    }
+    return `${text}\n\n${link}`;
   } catch (err) {
     return null;
   }
