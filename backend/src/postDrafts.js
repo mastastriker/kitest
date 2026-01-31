@@ -111,7 +111,7 @@ function buildRewritePrompt(theme, article, idea, includeLink) {
   const system = [
     'Du bist Social Editor für X.',
     'Ziel: menschlich, glaubwürdig, X-tauglich.',
-    'Antwort-Format: JSON mit Feld "post". Kein zusätzlicher Text.',
+    'Antwort-Format: JSON mit Feldern "text" und "link". Kein zusätzlicher Text.',
   ].join(' ');
 
   const linkLine = includeLink && article.link ? `Link: ${article.link}` : '';
@@ -124,14 +124,19 @@ function buildRewritePrompt(theme, article, idea, includeLink) {
     sourceLine,
     linkLine,
     propertyHints ? `Eigenschaften: ${propertyHints}` : '',
-    'Maximal 280 Zeichen.',
+    'Text zuerst vollständig formulieren, Link separat liefern.',
+    'Der Text darf keine URLs enthalten.',
+    'Der Link darf nur die URL enthalten und muss vollständig sein.',
+    'Kürze bei Bedarf den Inhalt, aber niemals Sätze oder Links abschneiden.',
+    'Keine harten Zeichenlimits, aber halte dich an die X-Grenze (280 Zeichen).',
     'KONKRETE Bezüge zu Akteuren, Ereignis oder Quelle.',
     'Keine Emojis, keine Aufzählungen, keine Floskeln.',
     'Keine Meta-Sprache.',
     'Keine Gedankenstriche, kein "-" oder "–".',
     'Keine abstrakten Verben wie "ignorieren" oder "thematisieren".',
     'Kurze, klare Sätze.',
-    includeLink && article.link ? 'Der Link muss im Post stehen.' : '',
+    includeLink && article.link ? 'Der Link muss geliefert werden.' : '',
+    'Antwort im JSON-Format: {"text": "...", "link": "https://..." }',
   ]
     .filter(Boolean)
     .join('\n');
@@ -188,27 +193,25 @@ async function runIdea(theme, analysis) {
 async function runRewrite(theme, article, idea, includeLink) {
   const prompt = buildRewritePrompt(theme, article, idea, includeLink);
   const data = await runOpenAiJson(prompt);
-  const post = String(data?.post || '').trim();
-  if (!post) {
-    throw new Error('Rewrite response was invalid');
+  const text = String(data?.text || '').trim();
+  const link = String(data?.link || '').trim();
+  if (!text || !/[.!?][\"'”’)]?$/.test(text)) {
+    throw new Error('Post text was incomplete');
   }
-  return post;
+  if (/https?:\/\//i.test(text)) {
+    throw new Error('Post text was incomplete');
+  }
+  if (!link.startsWith('http') || /\s/.test(link)) {
+    throw new Error('Post text was incomplete');
+  }
+  if (includeLink && !link) {
+    throw new Error('Post text was incomplete');
+  }
+  return `${text}\n\n${link}`;
 }
 
 function enforceNoDashes(text) {
   return text.replace(/\s[–—]\s/g, '. ').replace(/\s-\s/g, '. ');
-}
-
-function ensureLink(text, link) {
-  if (!link) return text;
-  if (text.includes(link)) return text;
-  const withLink = `${text} ${link}`.trim();
-  return withLink;
-}
-
-function clampLength(text, max = 280) {
-  if (text.length <= max) return text;
-  return text.slice(0, max).trim();
 }
 
 async function generateDraftFromArticle(themeId, sourceType, article) {
@@ -231,10 +234,9 @@ async function generateDraftFromArticle(themeId, sourceType, article) {
   const includeLink = sourceType === 'rss' || sourceType === 'manual';
   let text = await runRewrite(theme, normalized, idea, includeLink);
   text = enforceNoDashes(text);
-  if (includeLink) {
-    text = ensureLink(text, normalized.link);
+  if (includeLink && normalized.link && !text.includes(normalized.link)) {
+    throw new Error('Post text was incomplete');
   }
-  text = clampLength(text, 280);
 
   return {
     skipped: false,
