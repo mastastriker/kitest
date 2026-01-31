@@ -302,6 +302,28 @@ function updatePostDraftStatus(draftId, status) {
   return draft;
 }
 
+function deletePostDraft(draftId) {
+  const store = readStore();
+  const index = store.drafts.findIndex((draft) => draft.id === draftId);
+  if (index === -1) {
+    return null;
+  }
+  const [removed] = store.drafts.splice(index, 1);
+  writeStore(store);
+  return removed;
+}
+
+function deletePostDraftsByStatus(status) {
+  const store = readStore();
+  const removed = store.drafts.filter((draft) => draft.status === status);
+  if (!removed.length) {
+    return [];
+  }
+  store.drafts = store.drafts.filter((draft) => draft.status !== status);
+  writeStore(store);
+  return removed;
+}
+
 module.exports = {
   getTopics,
   getTopic,
@@ -317,4 +339,6 @@ module.exports = {
   addPostDraft,
   updatePostDraft,
   updatePostDraftStatus,
+  deletePostDraft,
+  deletePostDraftsByStatus,
 };

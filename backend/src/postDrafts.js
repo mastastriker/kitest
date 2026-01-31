@@ -5,6 +5,8 @@ const {
   getPostDrafts,
   updatePostDraft,
   updatePostDraftStatus,
+  deletePostDraft,
+  deletePostDraftsByStatus,
 } = require('./store');
 const { generateTrendsForTopic } = require('./trends');
 
@@ -377,10 +379,20 @@ function editDraft(draftId, content) {
   return updatePostDraft(draftId, { content });
 }
 
+function deleteDraft(draftId) {
+  return deletePostDraft(draftId);
+}
+
+function clearArchivedDrafts() {
+  return deletePostDraftsByStatus('discarded');
+}
+
 module.exports = {
   getDraftsForTheme,
   generateDraft,
   approveDraft,
   discardDraft,
   editDraft,
+  deleteDraft,
+  clearArchivedDrafts,
 };

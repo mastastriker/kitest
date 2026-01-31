@@ -6,9 +6,11 @@ const themeSelect = document.getElementById('generator-theme');
 const manualPicker = document.getElementById('manual-picker');
 const rssSummary = document.getElementById('rss-summary');
 const statusBadge = document.getElementById('generator-status');
+const submitButton = form.querySelector('button[type="submit"]');
 
 let themes = [];
 let cachedCandidates = [];
+let isGenerating = false;
 
 const setStatus = (message, tone = 'default') => {
   statusBadge.textContent = message;
@@ -144,6 +146,13 @@ form.addEventListener('change', (event) => {
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
+  if (isGenerating) {
+    return;
+  }
+  isGenerating = true;
+  if (submitButton) {
+    submitButton.disabled = true;
+  }
   setStatus('Generiere ...');
   const mode = getMode();
   const theme = themeSelect.value;
@@ -173,6 +182,11 @@ form.addEventListener('submit', async (event) => {
     setStatus('Draft erstellt');
   } catch (error) {
     setStatus(error.message, 'danger');
+  } finally {
+    isGenerating = false;
+    if (submitButton) {
+      submitButton.disabled = false;
+    }
   }
 });
 
