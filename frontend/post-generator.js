@@ -9,6 +9,7 @@ const statusBadge = document.getElementById('generator-status');
 
 let themes = [];
 let cachedCandidates = [];
+let cachedNewsItems = [];
 
 const setStatus = (message, tone = 'default') => {
   statusBadge.textContent = message;
@@ -41,52 +42,35 @@ const fetchThemes = async () => {
   renderThemes();
 };
 
-const fetchFeedPreview = async (feed) => {
-  const response = await fetch(`/api/news/preview?url=${encodeURIComponent(feed.url)}`);
+const fetchStoredNewsItems = async () => {
+  const response = await fetch('/api/news/items?used=false&discarded=false');
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.error || 'Feed konnte nicht geladen werden.');
+    throw new Error(data.error || 'Gespeicherte RSS-News konnten nicht geladen werden.');
   }
-  return {
-    source: data.feed?.title || feed.name,
-    items: data.items || [],
-  };
+  cachedNewsItems = data.items || [];
 };
 
-const loadRssCandidates = async () => {
-  const feeds = readStored(FEED_STORAGE_KEY).filter((feed) => feed.active);
-  if (!feeds.length) {
-    cachedCandidates = [];
-    rssSummary.textContent = 'Keine aktiven RSS-Feeds gefunden.';
-    return;
-  }
-  rssSummary.textContent = 'Lade RSS-Artikel ...';
-  try {
-    const results = await Promise.all(feeds.map((feed) => fetchFeedPreview(feed)));
-    const merged = results.flatMap((result) =>
-      (result.items || []).map((item) => ({
-        title: item.title,
-        summary: item.summary || item.title,
-        content: item.summary || item.title,
-        link: item.link,
-        publishedAt: item.publishedAt,
-        source: result.source,
-      }))
-    );
-    cachedCandidates = merged
-      .filter((item) => item.title && item.link)
-      .sort((a, b) => Date.parse(b.publishedAt || 0) - Date.parse(a.publishedAt || 0))
-      .slice(0, 10);
-    rssSummary.textContent = `Bereit: ${cachedCandidates.length} RSS-Artikel geladen.`;
-  } catch (error) {
-    cachedCandidates = [];
-    rssSummary.textContent = error.message;
-  }
+const loadRssCandidates = () => {
+  cachedCandidates = cachedNewsItems
+    .map((item) => ({
+      title: item.title,
+      summary: item.content || item.title,
+      content: item.content || item.title,
+      link: item.url,
+      publishedAt: item.published_at,
+      source: item.source,
+    }))
+    .filter((item) => item.title && item.link)
+    .sort((a, b) => Date.parse(b.publishedAt || 0) - Date.parse(a.publishedAt || 0))
+    .slice(0, 10);
+  rssSummary.textContent = cachedCandidates.length
+    ? `Bereit: ${cachedCandidates.length} RSS-Artikel geladen.`
+    : 'Keine gespeicherten RSS-Artikel verfügbar.';
 };
 
 const renderManualPicker = () => {
-  const storedTopics = readStored(TOPIC_STORAGE_KEY);
-  if (!storedTopics.length) {
+  if (!cachedNewsItems.length) {
     manualPicker.innerHTML =
       '<p class="muted small">Keine gespeicherten RSS-News gefunden.</p>';
     return;
@@ -97,7 +81,7 @@ const renderManualPicker = () => {
   label.textContent = 'RSS-News auswählen';
   const select = document.createElement('select');
   select.id = 'manual-selection';
-  storedTopics.forEach((topic) => {
+  cachedNewsItems.forEach((topic) => {
     const option = document.createElement('option');
     option.value = topic.id;
     option.textContent = `${topic.title} (${topic.source || 'Quelle'})`;
@@ -116,17 +100,16 @@ const renderManualPicker = () => {
 const getMode = () => document.querySelector('input[name="generator-mode"]:checked')?.value;
 
 const buildManualArticle = () => {
-  const storedTopics = readStored(TOPIC_STORAGE_KEY);
   const selectedId = document.getElementById('manual-selection')?.value;
-  const selected = storedTopics.find((topic) => topic.id === selectedId);
+  const selected = cachedNewsItems.find((topic) => topic.id === selectedId);
   if (!selected) return null;
   return {
     title: selected.title,
-    summary: selected.summary || selected.title || '',
-    content: selected.summary || selected.title || '',
-    link: selected.link,
+    summary: selected.content || selected.title || '',
+    content: selected.content || selected.title || '',
+    link: selected.url,
     source: selected.source,
-    publishedAt: selected.savedAt,
+    publishedAt: selected.published_at,
   };
 };
 
@@ -171,6 +154,9 @@ form.addEventListener('submit', async (event) => {
       throw new Error(data.error || 'Generierung fehlgeschlagen.');
     }
     setStatus('Draft erstellt');
+    await fetchStoredNewsItems();
+    renderManualPicker();
+    loadRssCandidates();
   } catch (error) {
     setStatus(error.message, 'danger');
   }
@@ -178,8 +164,14 @@ form.addEventListener('submit', async (event) => {
 
 const init = async () => {
   await fetchThemes();
+  try {
+    await fetchStoredNewsItems();
+  } catch (error) {
+    cachedNewsItems = [];
+    rssSummary.textContent = error.message;
+  }
   renderManualPicker();
-  await loadRssCandidates();
+  loadRssCandidates();
   setModeVisibility();
 };
 

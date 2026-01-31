@@ -25,15 +25,9 @@ const {
 const { generateTrendsForTopic, MODE_MAP, clampCount, buildTrendPrompt } = require('./trends');
 const { parseFeed } = require('./news');
 const { getDraftThemes, getDraftTheme } = require('./draftConfig');
-const {
-  generateDraft,
-  approveDraft,
-  discardDraft,
-  editDraft,
-  getDraftsForTheme,
-  deleteDraftsByIds,
-  clearArchivedDrafts,
-} = require('./postDrafts');
+const { generateDraft, approveDraft, discardDraft, editDraft, getDraftsForTheme } =
+  require('./postDrafts');
+const { getNewsItems, upsertNewsItems } = require('./store');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -268,20 +262,6 @@ app.put('/api/post-drafts/:id', (req, res) => {
   }
 });
 
-app.delete('/api/post-drafts', (req, res) => {
-  const { ids } = req.body || {};
-  if (!Array.isArray(ids) || !ids.length) {
-    return res.status(400).json({ error: 'ids are required' });
-  }
-  const removed = deleteDraftsByIds(ids);
-  return res.json({ removed: removed.map((draft) => draft.id) });
-});
-
-app.delete('/api/post-drafts/archived', (req, res) => {
-  const removed = clearArchivedDrafts();
-  return res.json({ removed: removed.map((draft) => draft.id) });
-});
-
 app.get('/api/news/preview', async (req, res) => {
   const url = req.query?.url;
   if (!url) {
@@ -316,6 +296,31 @@ app.get('/api/news/preview', async (req, res) => {
     clearTimeout(timeout);
     return res.status(500).json({ error: 'feed request failed', detail: err.message });
   }
+});
+
+app.get('/api/news/items', (req, res) => {
+  const used = req.query.used;
+  const discarded = req.query.discarded;
+  const filters = {};
+  if (used === 'true' || used === 'false') {
+    filters.used = used === 'true';
+  }
+  if (discarded === 'true' || discarded === 'false') {
+    filters.discarded = discarded === 'true';
+  }
+  const items = getNewsItems(filters).sort(
+    (a, b) => Date.parse(b.published_at || '') - Date.parse(a.published_at || '')
+  );
+  return res.json({ items });
+});
+
+app.post('/api/news/items', (req, res) => {
+  const { items } = req.body || {};
+  if (!Array.isArray(items) || !items.length) {
+    return res.status(400).json({ error: 'items are required' });
+  }
+  const added = upsertNewsItems(items);
+  return res.json({ added: added.length });
 });
 
 app.delete('/api/posts/:id', (req, res) => {

@@ -5,7 +5,8 @@ const {
   getPostDrafts,
   updatePostDraft,
   updatePostDraftStatus,
-  deletePostDrafts,
+  markNewsItemUsed,
+  markNewsItemDiscarded,
 } = require('./store');
 const { generateTrendsForTopic } = require('./trends');
 
@@ -303,13 +304,17 @@ async function generateDraftForTheme(themeId, payload) {
   if (generated.skipped) {
     throw new Error('Artikel ist für einen Draft nicht stark genug.');
   }
-  return addPostDraft({
+  const created = addPostDraft({
     theme: themeId,
     content: generated.content,
     status: 'generated',
     source_type: sourceType,
     source_ref: normalized.link,
   });
+  if (sourceType === 'rss' || sourceType === 'manual') {
+    markNewsItemUsed(normalized.link);
+  }
+  return created;
 }
 
 async function generateDraftFromCandidates(themeId, candidates) {
@@ -323,13 +328,15 @@ async function generateDraftFromCandidates(themeId, candidates) {
       if (draft.skipped) {
         continue;
       }
-      return addPostDraft({
+      const created = addPostDraft({
         theme: themeId,
         content: draft.content,
         status: 'generated',
         source_type: 'rss',
         source_ref: article.link,
       });
+      markNewsItemUsed(article.link);
+      return created;
     } catch (error) {
       continue;
     }
@@ -369,22 +376,15 @@ function approveDraft(draftId) {
 }
 
 function discardDraft(draftId) {
-  return updatePostDraftStatus(draftId, 'discarded');
+  const draft = updatePostDraftStatus(draftId, 'discarded');
+  if (draft?.source_ref && (draft.source_type === 'rss' || draft.source_type === 'manual')) {
+    markNewsItemDiscarded(draft.source_ref);
+  }
+  return draft;
 }
 
 function editDraft(draftId, content) {
   return updatePostDraft(draftId, { content });
-}
-
-function deleteDraftsByIds(ids = []) {
-  if (!Array.isArray(ids) || !ids.length) {
-    return [];
-  }
-  return deletePostDrafts({ ids });
-}
-
-function clearArchivedDrafts() {
-  return deletePostDrafts({ statuses: ['discarded', 'posted'] });
 }
 
 module.exports = {
@@ -393,6 +393,4 @@ module.exports = {
   approveDraft,
   discardDraft,
   editDraft,
-  deleteDraftsByIds,
-  clearArchivedDrafts,
 };
