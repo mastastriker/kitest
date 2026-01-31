@@ -155,10 +155,11 @@ const renderTopics = (topics) => {
 const setNewsItems = (items) => {
   const hiddenIds = new Set(readStored(HIDDEN_STORAGE_KEY));
   const visibleItems = items.filter((item) => !hiddenIds.has(item.id));
-  currentNewsItems = visibleItems;
+  const limitedItems = visibleItems.slice(0, 5);
+  currentNewsItems = limitedItems;
   newsItems.innerHTML = '';
 
-  if (!visibleItems.length) {
+  if (!limitedItems.length) {
     newsItems.textContent = 'Noch keine News geladen.';
     newsItems.classList.add('muted');
     newsCount.textContent = '0 Artikel';
@@ -166,9 +167,9 @@ const setNewsItems = (items) => {
   }
 
   newsItems.classList.remove('muted');
-  newsCount.textContent = `${visibleItems.length} Artikel`;
+  newsCount.textContent = `${limitedItems.length} Artikel`;
 
-  visibleItems.forEach((item) => {
+  limitedItems.forEach((item) => {
     const card = document.createElement('article');
     card.className = 'news-item';
 

@@ -2,10 +2,14 @@ const draftsList = document.getElementById('drafts-list');
 const draftsCount = document.getElementById('drafts-count');
 const draftsHeading = document.getElementById('drafts-heading');
 const tabButtons = document.querySelectorAll('.tab-button');
+const archiveActions = document.getElementById('archive-actions');
+const deleteSelectedButton = document.getElementById('delete-selected');
+const clearArchiveButton = document.getElementById('clear-archive');
 
 const state = {
   drafts: [],
   activeTab: 'generated',
+  selectedDraftIds: new Set(),
 };
 
 const statusLabels = {
@@ -18,6 +22,9 @@ const statusLabels = {
 
 const setActiveTab = (tab) => {
   state.activeTab = tab;
+  if (tab !== 'archived') {
+    state.selectedDraftIds.clear();
+  }
   tabButtons.forEach((button) => {
     button.classList.toggle('is-active', button.dataset.tab === tab);
   });
@@ -75,6 +82,62 @@ const discardDraft = async (id) => {
   renderDrafts();
 };
 
+const updateArchiveActions = () => {
+  if (!archiveActions || !deleteSelectedButton || !clearArchiveButton) {
+    return;
+  }
+  archiveActions.classList.toggle('is-hidden', state.activeTab !== 'archived');
+  const selectedCount = state.selectedDraftIds.size;
+  deleteSelectedButton.disabled = selectedCount === 0;
+  deleteSelectedButton.textContent = selectedCount
+    ? `Ausgewählte löschen (${selectedCount})`
+    : 'Ausgewählte löschen';
+  const archivedCount = state.drafts.filter(
+    (draft) => draft.status === 'discarded' || draft.status === 'posted'
+  ).length;
+  clearArchiveButton.disabled = archivedCount === 0;
+};
+
+const deleteSelectedDrafts = async () => {
+  const ids = Array.from(state.selectedDraftIds);
+  if (!ids.length) {
+    return;
+  }
+  if (!confirm(`Ausgewählte Entwürfe (${ids.length}) wirklich löschen?`)) {
+    return;
+  }
+  const res = await fetch('/api/post-drafts', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Löschen fehlgeschlagen.');
+  }
+  state.drafts = state.drafts.filter((draft) => !state.selectedDraftIds.has(draft.id));
+  state.selectedDraftIds.clear();
+  renderDrafts();
+};
+
+const clearArchive = async () => {
+  if (
+    !confirm('Archiv wirklich komplett leeren? Alle verworfenen/geposteten Entwürfe werden gelöscht.')
+  ) {
+    return;
+  }
+  const res = await fetch('/api/post-drafts/archived', { method: 'DELETE' });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Archiv leeren fehlgeschlagen.');
+  }
+  state.drafts = state.drafts.filter(
+    (draft) => draft.status !== 'discarded' && draft.status !== 'posted'
+  );
+  state.selectedDraftIds.clear();
+  renderDrafts();
+};
+
 const filterDrafts = () => {
   if (state.activeTab === 'approved') {
     return state.drafts.filter((draft) => draft.status === 'approved');
@@ -90,20 +153,44 @@ const renderDrafts = () => {
   draftsCount.textContent = `${drafts.length}`;
   if (!drafts.length) {
     draftsList.innerHTML = '<p class="muted">Keine Entwürfe vorhanden.</p>';
+    updateArchiveActions();
     return;
   }
   draftsList.innerHTML = '';
   drafts.forEach((draft) => {
     const card = document.createElement('article');
     card.className = 'draft-card';
+    if (state.activeTab === 'archived' && state.selectedDraftIds.has(draft.id)) {
+      card.classList.add('is-selected');
+    }
     const meta = document.createElement('div');
     meta.className = 'draft-meta';
+    const headerRow = document.createElement('div');
+    headerRow.className = 'draft-meta-row';
     const title = document.createElement('h3');
     title.textContent = `${draft.theme} · ${statusLabels[draft.status] || draft.status}`;
+    if (state.activeTab === 'archived') {
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'draft-select';
+      checkbox.checked = state.selectedDraftIds.has(draft.id);
+      checkbox.setAttribute('aria-label', `Entwurf ${draft.theme} auswählen`);
+      checkbox.addEventListener('change', () => {
+        if (checkbox.checked) {
+          state.selectedDraftIds.add(draft.id);
+        } else {
+          state.selectedDraftIds.delete(draft.id);
+        }
+        card.classList.toggle('is-selected', checkbox.checked);
+        updateArchiveActions();
+      });
+      headerRow.appendChild(checkbox);
+    }
+    headerRow.appendChild(title);
     const date = document.createElement('div');
     date.className = 'muted small';
     date.textContent = `Erstellt: ${new Date(draft.created_at).toLocaleString('de-DE')}`;
-    meta.append(title, date);
+    meta.append(headerRow, date);
 
     const text = document.createElement('div');
     text.className = 'draft-text';
@@ -172,11 +259,28 @@ const renderDrafts = () => {
     card.append(meta, text, source, actions);
     draftsList.appendChild(card);
   });
+  updateArchiveActions();
 };
 
 tabButtons.forEach((button) => {
   button.addEventListener('click', () => setActiveTab(button.dataset.tab));
 });
+
+if (deleteSelectedButton) {
+  deleteSelectedButton.addEventListener('click', () => {
+    deleteSelectedDrafts().catch((error) => {
+      alert(error.message);
+    });
+  });
+}
+
+if (clearArchiveButton) {
+  clearArchiveButton.addEventListener('click', () => {
+    clearArchive().catch((error) => {
+      alert(error.message);
+    });
+  });
+}
 
 fetchDrafts().catch((error) => {
   draftsList.innerHTML = `<p class="muted">Fehler: ${error.message}</p>`;
