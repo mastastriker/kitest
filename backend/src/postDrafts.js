@@ -1,5 +1,6 @@
 const OpenAI = require('openai');
 const { getDraftTheme } = require('./draftConfig');
+const { isCompletePostText } = require('./textValidation');
 const {
   addPostDraft,
   getPostDrafts,
@@ -131,6 +132,9 @@ function buildRewritePrompt(theme, article, idea, includeLink) {
     'Keine Gedankenstriche, kein "-" oder "–".',
     'Keine abstrakten Verben wie "ignorieren" oder "thematisieren".',
     'Kurze, klare Sätze.',
+    'Der Text muss vollständig sein, Sätze dürfen nicht mitten im Wort enden.',
+    'Falls ein Link vorkommt, steht er in einer eigenen Zeile ganz am Ende.',
+    'Kürze den Inhalt lieber, statt ihn hart abzuschneiden.',
     includeLink && article.link ? 'Der Link muss im Post stehen.' : '',
   ]
     .filter(Boolean)
@@ -206,9 +210,8 @@ function ensureLink(text, link) {
   return withLink;
 }
 
-function clampLength(text, max = 280) {
-  if (text.length <= max) return text;
-  return text.slice(0, max).trim();
+function isValidPostText(text) {
+  return isCompletePostText(text);
 }
 
 async function generateDraftFromArticle(themeId, sourceType, article) {
@@ -229,12 +232,21 @@ async function generateDraftFromArticle(themeId, sourceType, article) {
 
   const idea = await runIdea(theme, analysis);
   const includeLink = sourceType === 'rss' || sourceType === 'manual';
-  let text = await runRewrite(theme, normalized, idea, includeLink);
-  text = enforceNoDashes(text);
-  if (includeLink) {
-    text = ensureLink(text, normalized.link);
+  let text = '';
+  const attempts = 2;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    text = await runRewrite(theme, normalized, idea, includeLink);
+    text = enforceNoDashes(text);
+    if (includeLink) {
+      text = ensureLink(text, normalized.link);
+    }
+    if (isValidPostText(text)) {
+      break;
+    }
   }
-  text = clampLength(text, 280);
+  if (!isValidPostText(text)) {
+    throw new Error('Post text was incomplete');
+  }
 
   return {
     skipped: false,
