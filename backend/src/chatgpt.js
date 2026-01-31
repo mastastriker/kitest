@@ -1,7 +1,6 @@
 const OpenAI = require('openai');
 const { getDefaultPrompts, renderUserPrompt } = require('./prompts');
 const { getPostPropertyMap } = require('./postProperties');
-const { isCompletePostText } = require('./textValidation');
 
 const apiKey = process.env.OPENAI_API_KEY;
 const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
@@ -18,25 +17,22 @@ async function generatePostsForTopic(topic, count = 3) {
 
   const { system, user } = buildPostPromptForTopic(topic, count);
 
-  const attempts = 2;
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    const response = await client.chat.completions.create({
-      model,
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: user },
-      ],
-      temperature: 0.7,
-      response_format: { type: 'json_object' },
-    });
+  const response = await client.chat.completions.create({
+    model,
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user', content: user },
+    ],
+    temperature: 0.7,
+    response_format: { type: 'json_object' },
+  });
 
-    const content = response.choices[0]?.message?.content;
-    const parsed = safeParsePosts(content).filter(isCompletePostText);
-    if (parsed.length >= count) {
-      return parsed.slice(0, count);
-    }
+  const content = response.choices[0]?.message?.content;
+  const parsed = safeParsePosts(content);
+  if (!parsed.length) {
+    throw new Error('OpenAI response did not include valid posts');
   }
-  throw new Error('OpenAI response did not include valid posts');
+  return parsed;
 }
 
 async function generatePostFromTrend(topic, trend) {
@@ -54,25 +50,22 @@ async function generatePostFromTrend(topic, trend) {
 
   const { system, user } = buildTrendPostPrompt(topic, cleanedTrend);
 
-  const attempts = 2;
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    const response = await client.chat.completions.create({
-      model,
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: user },
-      ],
-      temperature: 0.7,
-      response_format: { type: 'json_object' },
-    });
+  const response = await client.chat.completions.create({
+    model,
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user', content: user },
+    ],
+    temperature: 0.7,
+    response_format: { type: 'json_object' },
+  });
 
-    const content = response.choices[0]?.message?.content;
-    const parsed = safeParsePost(content);
-    if (parsed && isCompletePostText(parsed)) {
-      return parsed;
-    }
+  const content = response.choices[0]?.message?.content;
+  const parsed = safeParsePost(content);
+  if (!parsed) {
+    throw new Error('OpenAI response did not include a valid post');
   }
-  throw new Error('OpenAI response did not include a valid post');
+  return parsed;
 }
 
 async function generatePostFromPrompt(system, user) {
@@ -83,25 +76,22 @@ async function generatePostFromPrompt(system, user) {
     throw new Error('Prompt system and user are required');
   }
 
-  const attempts = 2;
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    const response = await client.chat.completions.create({
-      model,
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: user },
-      ],
-      temperature: 0.7,
-      response_format: { type: 'json_object' },
-    });
+  const response = await client.chat.completions.create({
+    model,
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user', content: user },
+    ],
+    temperature: 0.7,
+    response_format: { type: 'json_object' },
+  });
 
-    const content = response.choices[0]?.message?.content;
-    const parsed = safeParsePost(content);
-    if (parsed && isCompletePostText(parsed)) {
-      return parsed;
-    }
+  const content = response.choices[0]?.message?.content;
+  const parsed = safeParsePost(content);
+  if (!parsed) {
+    throw new Error('OpenAI response did not include a valid post');
   }
-  throw new Error('OpenAI response did not include a valid post');
+  return parsed;
 }
 
 function appendPropertyInstructions(userPrompt, selectedProperties) {
@@ -138,10 +128,10 @@ function buildTrendPostPrompt(topic, trend) {
     `Trend-Idee: ${trend}`,
     'Erstelle genau einen prägnanten X-Post auf Deutsch.',
     'Der Post soll eigenständig formuliert sein und nicht nur die Trend-Idee zitieren.',
-    'Maximal 260 Zeichen, keine Emojis, keine Hashtags.',
-    'Der Text muss vollständig sein und mit einem vollständigen Satz enden.',
-    'Falls ein Link vorkommt, steht er in einer eigenen Zeile ganz am Ende.',
-    'Kürze den Inhalt, statt ihn hart abzuschneiden.',
+    'Halte dich an die X-Grenze (280 Zeichen).',
+    'Kürze bei Bedarf den Inhalt, aber niemals Sätze oder Links.',
+    'Der Link (falls vorhanden) steht in einer eigenen Zeile ganz am Ende und ist vollständig.',
+    'Keine Emojis, keine Hashtags.',
     'Antwort im JSON-Format: {"post": "..." }',
     propertyHints,
   ]

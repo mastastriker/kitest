@@ -1,6 +1,5 @@
 const OpenAI = require('openai');
 const { getDraftTheme } = require('./draftConfig');
-const { isCompletePostText } = require('./textValidation');
 const {
   addPostDraft,
   getPostDrafts,
@@ -125,16 +124,15 @@ function buildRewritePrompt(theme, article, idea, includeLink) {
     sourceLine,
     linkLine,
     propertyHints ? `Eigenschaften: ${propertyHints}` : '',
-    'Maximal 280 Zeichen.',
+    'Halte dich an die X-Grenze (280 Zeichen).',
     'KONKRETE Bezüge zu Akteuren, Ereignis oder Quelle.',
     'Keine Emojis, keine Aufzählungen, keine Floskeln.',
     'Keine Meta-Sprache.',
     'Keine Gedankenstriche, kein "-" oder "–".',
     'Keine abstrakten Verben wie "ignorieren" oder "thematisieren".',
     'Kurze, klare Sätze.',
-    'Der Text muss vollständig sein, Sätze dürfen nicht mitten im Wort enden.',
-    'Falls ein Link vorkommt, steht er in einer eigenen Zeile ganz am Ende.',
-    'Kürze den Inhalt lieber, statt ihn hart abzuschneiden.',
+    'Kürze bei Bedarf den Inhalt, aber niemals Sätze oder Links.',
+    'Der Link (falls vorhanden) steht in einer eigenen Zeile ganz am Ende und ist vollständig.',
     includeLink && article.link ? 'Der Link muss im Post stehen.' : '',
   ]
     .filter(Boolean)
@@ -210,8 +208,9 @@ function ensureLink(text, link) {
   return withLink;
 }
 
-function isValidPostText(text) {
-  return isCompletePostText(text);
+function clampLength(text, max = 280) {
+  if (text.length <= max) return text;
+  return text.slice(0, max).trim();
 }
 
 async function generateDraftFromArticle(themeId, sourceType, article) {
@@ -232,21 +231,12 @@ async function generateDraftFromArticle(themeId, sourceType, article) {
 
   const idea = await runIdea(theme, analysis);
   const includeLink = sourceType === 'rss' || sourceType === 'manual';
-  let text = '';
-  const attempts = 2;
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    text = await runRewrite(theme, normalized, idea, includeLink);
-    text = enforceNoDashes(text);
-    if (includeLink) {
-      text = ensureLink(text, normalized.link);
-    }
-    if (isValidPostText(text)) {
-      break;
-    }
+  let text = await runRewrite(theme, normalized, idea, includeLink);
+  text = enforceNoDashes(text);
+  if (includeLink) {
+    text = ensureLink(text, normalized.link);
   }
-  if (!isValidPostText(text)) {
-    throw new Error('Post text was incomplete');
-  }
+  text = clampLength(text, 280);
 
   return {
     skipped: false,
