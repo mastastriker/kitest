@@ -5,7 +5,6 @@ const {
   getPostDrafts,
   updatePostDraft,
   updatePostDraftStatus,
-  deletePostDrafts,
 } = require('./store');
 const { generateTrendsForTopic } = require('./trends');
 
@@ -376,23 +375,10 @@ function editDraft(draftId, content) {
   return updatePostDraft(draftId, { content });
 }
 
-function deleteDraftsByIds(ids = []) {
-  if (!Array.isArray(ids) || !ids.length) {
-    return [];
-  }
-  return deletePostDrafts({ ids });
-}
-
-function clearArchivedDrafts() {
-  return deletePostDrafts({ statuses: ['discarded', 'posted'] });
-}
-
 module.exports = {
   getDraftsForTheme,
   generateDraft,
   approveDraft,
   discardDraft,
   editDraft,
-  deleteDraftsByIds,
-  clearArchivedDrafts,
 };

@@ -183,14 +183,6 @@ h3 {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  flex-wrap: wrap;
-}
-
-.panel-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
 }
 
 .stack {
@@ -546,28 +538,10 @@ button:disabled {
   gap: 10px;
 }
 
-.draft-card.is-selected {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
-}
-
 .draft-meta {
   display: flex;
   flex-direction: column;
   gap: 4px;
-}
-
-.draft-meta-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.draft-select {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--accent);
-  cursor: pointer;
 }
 
 .draft-text {

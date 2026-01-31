@@ -371,6 +371,7 @@ const saveTopic = (item) => {
   writeStored(TOPIC_STORAGE_KEY, next);
   renderTopics(next);
   setStatus(newsStatus, 'Thema gespeichert.');
+  hideNewsItem(item.id);
 };
 
 const hideNewsItem = (id) => {
