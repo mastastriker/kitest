@@ -40,13 +40,20 @@ async function fetchTrendsForProvider(providerId, topicName, mode, count = 7) {
   }
   const availability = getTrendProviderAvailability();
   if (!availability[providerId]) {
-    return [];
+    throw new Error(`API key for ${providerId} is missing`);
   }
-  const trends = await provider.fetchTrends({ topicName, mode, modeLabel, count: clamped });
-  if (!Array.isArray(trends) || !trends.length) {
-    return [];
+  try {
+    const trends = await provider.fetchTrends({ topicName, mode, modeLabel, count: clamped });
+    if (!Array.isArray(trends) || !trends.length) {
+      throw new Error('Trend provider did not return any trends');
+    }
+    return trends.slice(0, clamped);
+  } catch (error) {
+    if (providerId === 'grok') {
+      console.error('Grok TrendProvider failed', error);
+    }
+    throw error;
   }
-  return trends.slice(0, clamped);
 }
 
 function buildTrendPrompt(topicName, mode, count) {

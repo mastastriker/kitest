@@ -204,23 +204,28 @@ app.post('/api/topics/:id/generate', async (req, res) => {
   if (!topic) {
     return res.status(404).json({ error: 'topic not found' });
   }
-  const count = Number(req.body?.count) || 3;
+  const count = Number(req.body?.count);
+  const topics = Number.isFinite(count) ? getTopics(count) : [topic];
   try {
-    const generated = await generatePostsForTopic(topic, count);
-    const prompt = buildPostPromptForTopic(topic, count);
-    const saved = addPosts(topic.id, generated, {
-      prompt,
-      promptText: formatPromptText(prompt),
-      generatedPost: '',
-    });
-    return res.json({ topic, posts: saved });
+    const posts = [];
+    for (const selectedTopic of topics) {
+      const generated = await generatePostsForTopic(selectedTopic, 1);
+      const prompt = buildPostPromptForTopic(selectedTopic, 1);
+      const saved = addPosts(selectedTopic.id, generated, {
+        prompt,
+        promptText: formatPromptText(prompt),
+        generatedPost: '',
+      });
+      posts.push(...saved);
+    }
+    return res.json({ topics, posts });
   } catch (err) {
     return res.status(500).json({ error: 'generation failed', detail: err.message });
   }
 });
 
 app.post('/api/trends', async (req, res) => {
-  const { topicId, mode, count } = req.body || {};
+  const { topicId, mode } = req.body || {};
   const topic = getTopic(topicId);
   if (!topic) {
     return res.status(404).json({ error: 'topic not found' });
@@ -234,8 +239,8 @@ app.post('/api/trends', async (req, res) => {
     return res.status(400).json({ error: `API key for ${trendProvider} is missing` });
   }
   try {
-    const trends = await generateTrendsForTopic(topic.name, mode, clampCount(count));
-    const prompt = buildTrendPrompt(topic.name, mode, clampCount(count));
+    const trends = await generateTrendsForTopic(topic.name, mode);
+    const prompt = buildTrendPrompt(topic.name, mode);
     return res.json({ topic, mode, trends, prompt });
   } catch (err) {
     console.error('[trends] generation failed', {
@@ -248,15 +253,15 @@ app.post('/api/trends', async (req, res) => {
 });
 
 app.post('/api/trends/refresh', async (req, res) => {
-  const { themeId, count } = req.body || {};
+  const { themeId } = req.body || {};
   const theme = themeId ? getDraftTheme(themeId) : null;
   if (!theme) {
     return res.status(400).json({ error: 'theme is invalid' });
   }
   try {
     const [grokTrends, openaiTrends] = await Promise.all([
-      fetchTrendsForProvider('grok', theme.label, 'current', clampCount(count)),
-      fetchTrendsForProvider('openai', theme.label, 'current', clampCount(count)),
+      fetchTrendsForProvider('grok', theme.label, 'current'),
+      fetchTrendsForProvider('openai', theme.label, 'current'),
     ]);
     const merged = [...grokTrends, ...openaiTrends];
     if (!merged.length) {
@@ -359,8 +364,8 @@ app.post('/api/post-drafts/generate', async (req, res) => {
   if (!['auto', 'manual'].includes(mode)) {
     return res.status(400).json({ error: 'mode is invalid' });
   }
-  const requestedCount = Number(count || 3);
-  if (![3, 5].includes(requestedCount)) {
+  const requestedCount = Number(req.body.count);
+  if (![1, 3, 5].includes(requestedCount)) {
     return res.status(400).json({ error: 'count is invalid' });
   }
   try {

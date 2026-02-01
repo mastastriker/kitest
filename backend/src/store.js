@@ -123,9 +123,13 @@ function normalizeTopics(store) {
   return topics;
 }
 
-function getTopics() {
+function getTopics(limit) {
   const store = readStore();
-  return normalizeTopics(store);
+  const topics = normalizeTopics(store);
+  if (Number.isFinite(limit)) {
+    return topics.slice(0, Math.max(0, limit));
+  }
+  return topics;
 }
 
 function getTopic(id) {
