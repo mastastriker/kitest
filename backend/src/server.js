@@ -15,6 +15,7 @@ const {
   deleteTopic,
   getSettings,
   updateSettings,
+  getTrends,
   getThemes,
   addTheme,
   updateTheme,
@@ -74,6 +75,10 @@ app.get('/api/post-properties', (req, res) => {
   res.json({
     properties: getPostProperties().map(({ id, label }) => ({ id, label })),
   });
+});
+
+app.get('/api/trends/current', (req, res) => {
+  res.json({ trends: getTrends() });
 });
 
 app.get('/api/settings', (req, res) => {
@@ -227,6 +232,30 @@ app.post('/api/trends', async (req, res) => {
     return res.json({ topic, mode, trends, prompt });
   } catch (err) {
     console.error('[trends] generation failed', {
+      message: err.message,
+      status: err.status,
+      response: err.response,
+    });
+    return res.status(500).json({ error: 'generation failed', detail: err.message });
+  }
+});
+
+app.post('/api/trends/refresh', async (req, res) => {
+  const { themeId, count } = req.body || {};
+  const theme = themeId ? getDraftTheme(themeId) : null;
+  if (!theme) {
+    return res.status(400).json({ error: 'theme is invalid' });
+  }
+  const { trendProvider } = getSettings();
+  const providerStatus = getApiKeyStatus();
+  if (!providerStatus[trendProvider]) {
+    return res.status(400).json({ error: `API key for ${trendProvider} is missing` });
+  }
+  try {
+    const trends = await generateTrendsForTopic(theme.label, 'current', clampCount(count));
+    return res.json({ trends });
+  } catch (err) {
+    console.error('[trends-refresh] generation failed', {
       message: err.message,
       status: err.status,
       response: err.response,

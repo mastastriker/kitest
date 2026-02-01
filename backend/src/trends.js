@@ -1,4 +1,4 @@
-const { getSettings, addTrendEntry } = require('./store');
+const { getSettings, setTrends } = require('./store');
 const { getTrendProvider, getTrendProviderAvailability } = require('./trendProviders');
 
 const MODE_MAP = {
@@ -21,14 +21,7 @@ async function generateTrendsForTopic(topicName, mode, count = 7) {
   if (!Array.isArray(trends) || !trends.length) {
     throw new Error('Trend provider did not return any trends');
   }
-  addTrendEntry({
-    id: generateTrendBatchId(),
-    topic: topicName,
-    mode,
-    provider: providerId,
-    created_at: new Date().toISOString(),
-    trends,
-  });
+  setTrends(trends);
   return trends;
 }
 
@@ -62,10 +55,6 @@ function resolveTrendProvider() {
     throw new Error(`API key for ${providerId} is missing`);
   }
   return { providerId, provider };
-}
-
-function generateTrendBatchId() {
-  return `trend_batch_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
 module.exports = {

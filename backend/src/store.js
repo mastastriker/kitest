@@ -78,17 +78,16 @@ function updateSettings(updates = {}) {
   return next;
 }
 
-function getTrendEntries() {
+function getTrends() {
   const store = readStore();
   return store.trends || [];
 }
 
-function addTrendEntry(entry) {
+function setTrends(trends = []) {
   const store = readStore();
-  store.trends = Array.isArray(store.trends) ? store.trends : [];
-  store.trends.push(entry);
+  store.trends = Array.isArray(trends) ? trends : [];
   writeStore(store);
-  return entry;
+  return store.trends;
 }
 
 function generateId(prefix = 'id') {
@@ -475,8 +474,8 @@ module.exports = {
   deletePostDraftsByStatus,
   getSettings,
   updateSettings,
-  getTrendEntries,
-  addTrendEntry,
+  getTrends,
+  setTrends,
   getThemes,
   getTheme,
   addTheme,
