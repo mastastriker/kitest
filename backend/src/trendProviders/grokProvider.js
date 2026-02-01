@@ -39,30 +39,51 @@ function createGrokTrendProvider() {
       if (!apiKey) {
         throw new Error('Grok API key is missing');
       }
-      const { system, user } = buildGrokTrendPrompt(topicName, modeLabel, count);
-      const response = await fetch(GROK_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model,
-          messages: [
-            { role: 'system', content: system },
-            { role: 'user', content: user },
-          ],
-          temperature: 0.4,
-          response_format: { type: 'json_object' },
-        }),
-      });
+      const systemMessage =
+        'You detect trending topics on X. Do not write posts or opinions.';
+      const topicLabel = topicName || 'crypto';
+      const userMessage = `List up to 10 current trending narratives on X about ${topicLabel}. Return short, neutral descriptions.`;
+      let response;
+      let responseBody;
 
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`Grok request failed: ${response.status} ${text}`);
+      try {
+        response = await fetch(GROK_ENDPOINT, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: 'system', content: systemMessage },
+              { role: 'user', content: userMessage },
+            ],
+            temperature: 0.2,
+          }),
+        });
+        responseBody = await response.text();
+        if (!response.ok) {
+          console.error('Grok API error', {
+            status: response.status,
+            body: responseBody,
+          });
+          throw new Error(`Grok request failed: ${response.status}`);
+        }
+      } catch (error) {
+        if (!response) {
+          console.error('Grok API error', { status: null, body: error.message });
+        }
+        throw error;
       }
 
-      const data = await response.json();
+      let data;
+      try {
+        data = JSON.parse(responseBody);
+      } catch (error) {
+        console.error('Grok API error', { status: response?.status, body: responseBody });
+        throw new Error('Grok response was not valid JSON');
+      }
       const content = data.choices?.[0]?.message?.content;
       const items = parseTrendPayload(content);
       const trends = items
