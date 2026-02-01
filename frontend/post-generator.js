@@ -9,16 +9,27 @@ const statusBadge = document.getElementById('generator-status');
 const themeWarning = document.getElementById('theme-warning');
 const countButtons = Array.from(document.querySelectorAll('.count-button'));
 const submitButton = form.querySelector('button[type="submit"]');
+const trendListGrok = document.getElementById('trend-list-grok');
+const trendListOpenAI = document.getElementById('trend-list-openai');
+const trendStatus = document.getElementById('trend-status');
+const trendRefreshButton = document.getElementById('trend-refresh');
 
 let themes = [];
 let themeRegistry = new Map();
 let cachedCandidates = [];
 let isGenerating = false;
 let selectedCount = 1;
+let isRefreshingTrends = false;
 
 const setStatus = (message, tone = 'default') => {
   statusBadge.textContent = message;
   statusBadge.classList.toggle('danger', tone === 'danger');
+};
+
+const setTrendStatus = (message, tone = 'default') => {
+  if (!trendStatus) return;
+  trendStatus.textContent = message;
+  trendStatus.classList.toggle('danger', tone === 'danger');
 };
 
 const setSelectedCount = (count) => {
@@ -36,6 +47,47 @@ const readStored = (key) => {
   } catch (error) {
     return [];
   }
+};
+
+const renderTrendColumn = (container, trends = []) => {
+  if (!container) return;
+  if (!Array.isArray(trends) || !trends.length) {
+    container.innerHTML = '<p class="muted small">Keine Trends geladen.</p>';
+    return;
+  }
+  container.innerHTML = '';
+  trends.forEach((trend) => {
+    const item = document.createElement('div');
+    item.className = 'trend-item';
+    const title = document.createElement('span');
+    title.className = 'trend-title';
+    title.textContent = trend.title || 'Ohne Titel';
+    const meta = document.createElement('span');
+    meta.className = 'trend-meta muted small';
+    const createdAt = trend.created_at ? new Date(trend.created_at).toLocaleString('de-DE') : '';
+    meta.textContent = createdAt;
+    item.append(title, meta);
+    container.appendChild(item);
+  });
+};
+
+const renderTrends = (trends = []) => {
+  const byProvider = (provider) =>
+    (Array.isArray(trends) ? trends : [])
+      .filter((trend) => trend.provider === provider)
+      .sort((a, b) => Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0))
+      .slice(0, 10);
+  renderTrendColumn(trendListGrok, byProvider('grok'));
+  renderTrendColumn(trendListOpenAI, byProvider('openai'));
+};
+
+const fetchCurrentTrends = async () => {
+  const res = await fetch('/api/trends/current');
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Trends konnten nicht geladen werden.');
+  }
+  renderTrends(data.trends || []);
 };
 
 const renderThemes = () => {
@@ -247,11 +299,44 @@ form.addEventListener('submit', async (event) => {
   }
 });
 
+trendRefreshButton?.addEventListener('click', async () => {
+  if (isRefreshingTrends) {
+    return;
+  }
+  const themeId = themeSelect.value;
+  if (!themeId) {
+    setTrendStatus('Bitte ein Thema auswählen.', 'danger');
+    return;
+  }
+  isRefreshingTrends = true;
+  trendRefreshButton.disabled = true;
+  setTrendStatus('Trends werden aktualisiert ...');
+  try {
+    const res = await fetch('/api/trends/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ themeId }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Trend-Aktualisierung fehlgeschlagen.');
+    }
+    renderTrends(data.trends || []);
+    setTrendStatus('Trends aktualisiert.');
+  } catch (error) {
+    setTrendStatus(error.message, 'danger');
+  } finally {
+    isRefreshingTrends = false;
+    trendRefreshButton.disabled = false;
+  }
+});
+
 const init = async () => {
   await fetchThemes();
   await fetchThemeRegistry();
   renderManualPicker();
   await loadRssCandidates();
+  await fetchCurrentTrends();
   setModeVisibility();
   setSelectedCount(selectedCount);
 };

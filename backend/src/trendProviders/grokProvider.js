@@ -1,0 +1,124 @@
+const { buildTrend } = require('./utils');
+
+const GROK_MODEL = 'grok-4-fast-non-reasoning';
+const GROK_ENDPOINT = 'https://api.x.ai/v1/chat/completions';
+
+function buildGrokTrendPrompt(topicName, modeLabel, count) {
+  const system = [
+    'Du bist Trend-Analyst für X (Twitter).',
+    'Deine Aufgabe ist ausschließlich Trend-Erkennung auf X.',
+    'Antworte immer auf Deutsch.',
+    'Beschreibe nur beobachtete Diskussionen, keine Meinungen.',
+    'Keine Empfehlungen, keine Schlussfolgerungen, kein Kommentarstil.',
+    'Output-Format: JSON mit dem Feld "trends" als Array von Objekten.',
+    'Jeder Eintrag: {"title":"...","description":"...","sources":["..."]}.',
+    'title: kurz, neutral, beobachtend.',
+    'description: 1-2 Sätze, rein faktisch.',
+    'sources: 1-4 kurze Hinweise (Hashtags, Begriffe, Accounts, Events).',
+    `Gib ${count} Einträge aus.`,
+    'Kein Text außerhalb des JSON.',
+  ].join(' ');
+
+  const user = [
+    `Thema: ${topicName}`,
+    `Modus: ${modeLabel}`,
+    'Nutze ausschließlich X als Quelle.',
+    'Beschreibe, was auf X diskutiert wird.',
+  ].join('\n');
+
+  return { system, user };
+}
+
+function createGrokTrendProvider() {
+  const apiKey = process.env.GROK_API_KEY;
+
+  return {
+    id: 'grok',
+    buildPrompt: buildGrokTrendPrompt,
+    async fetchTrends({ topicName, modeLabel, count }) {
+      if (!apiKey) {
+        throw new Error('Grok API key is missing');
+      }
+      const systemMessage =
+        'You detect trending topics on X. Do not write posts or opinions.';
+      const topicLabel = topicName || 'crypto';
+      const userMessage = `List up to 10 current trending narratives on X about ${topicLabel}. Return short, neutral descriptions.`;
+      let response;
+      let responseBody;
+
+      try {
+        response = await fetch(GROK_ENDPOINT, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: GROK_MODEL,
+            messages: [
+              { role: 'system', content: systemMessage },
+              { role: 'user', content: userMessage },
+            ],
+            temperature: 0.2,
+          }),
+        });
+        responseBody = await response.text();
+        if (!response.ok) {
+          console.error('Grok API error', {
+            status: response.status,
+            body: responseBody,
+          });
+          throw new Error(`Grok request failed: ${response.status}`);
+        }
+      } catch (error) {
+        if (!response) {
+          console.error('Grok API error', { status: null, body: error.message });
+        }
+        throw error;
+      }
+
+      let data;
+      try {
+        data = JSON.parse(responseBody);
+      } catch (error) {
+        console.error('Grok API error', { status: response?.status, body: responseBody });
+        throw new Error('Grok response was not valid JSON');
+      }
+      const content = data.choices?.[0]?.message?.content;
+      const trends = extractTrendsFromText(content, count);
+      if (!trends.length) {
+        throw new Error('Grok response did not include valid trends');
+      }
+      return trends;
+    },
+  };
+}
+
+function extractTrendsFromText(text, count) {
+  if (!text) {
+    return [];
+  }
+  const limit = Math.min(10, Math.max(1, Number(count) || 10));
+  const lines = String(text)
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => line.replace(/^[-*•\d)+.\s]+/, '').trim())
+    .filter(Boolean)
+    .slice(0, limit);
+  return lines
+    .map((line) =>
+      buildTrend({
+        title: line,
+        description: line,
+        provider: 'grok',
+        sources: ['x'],
+      })
+    )
+    .filter(Boolean);
+}
+
+module.exports = {
+  createGrokTrendProvider,
+  buildGrokTrendPrompt,
+};

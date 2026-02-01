@@ -24,6 +24,7 @@
         <a href="posts.html">Posts Übersicht</a>
         <a href="news.html">News</a>
         <a href="themes.html">Themen</a>
+        <a href="settings.html">Settings</a>
       </nav>
       <header>
         <h1>Post Generator</h1>
@@ -72,6 +73,28 @@
           <div id="manual-picker" class="stack"></div>
           <button type="submit">X-Post-Entwürfe generieren</button>
         </form>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Aktuelle Trends</h2>
+          <button id="trend-refresh" type="button">Trends aktualisieren</button>
+        </div>
+        <p id="trend-status" class="muted small"></p>
+        <div class="trend-columns">
+          <div class="trend-column">
+            <h3>Grok Trends</h3>
+            <div id="trend-list-grok" class="trend-list">
+              <p class="muted small">Keine Trends geladen.</p>
+            </div>
+          </div>
+          <div class="trend-column">
+            <h3>OpenAI Trends</h3>
+            <div id="trend-list-openai" class="trend-list">
+              <p class="muted small">Keine Trends geladen.</p>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section class="panel">

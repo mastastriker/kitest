@@ -2,15 +2,19 @@ const OpenAI = require('openai');
 const { getDefaultPrompts, renderUserPrompt } = require('./prompts');
 const { getPostPropertyMap } = require('./postProperties');
 
-const apiKey = process.env.OPENAI_API_KEY;
 const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
-const client = apiKey ? new OpenAI({ apiKey }) : null;
+
+function getClient() {
+  const apiKey = process.env.OPENAI_API_KEY;
+  return apiKey ? new OpenAI({ apiKey }) : null;
+}
 
 async function generatePostsForTopic(topic, count = 3) {
   if (!topic?.name) {
     throw new Error('Topic is required');
   }
 
+  const client = getClient();
   if (!client) {
     throw new Error('OpenAI client is not configured');
   }
@@ -44,6 +48,7 @@ async function generatePostFromTrend(topic, trend) {
     throw new Error('Trend is required');
   }
 
+  const client = getClient();
   if (!client) {
     throw new Error('OpenAI client is not configured');
   }
@@ -69,6 +74,7 @@ async function generatePostFromTrend(topic, trend) {
 }
 
 async function generatePostFromPrompt(system, user) {
+  const client = getClient();
   if (!client) {
     throw new Error('OpenAI client is not configured');
   }

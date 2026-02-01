@@ -1,8 +1,5 @@
-const OpenAI = require('openai');
-
-const apiKey = process.env.OPENAI_API_KEY;
-const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
-const client = apiKey ? new OpenAI({ apiKey }) : null;
+const { getSettings, setTrends } = require('./store');
+const { getTrendProvider, getTrendProviderAvailability } = require('./trendProviders');
 
 const MODE_MAP = {
   current: 'Aktuelle Trends',
@@ -19,52 +16,57 @@ async function generateTrendsForTopic(topicName, mode, count = 7) {
     throw new Error('mode is invalid');
   }
   const clamped = clampCount(count);
-
-  if (!client) {
-    return buildFallback(topicName, modeLabel, clamped);
+  const { providerId, provider } = resolveTrendProvider();
+  const trends = await provider.fetchTrends({ topicName, mode, modeLabel, count: clamped });
+  if (!Array.isArray(trends) || !trends.length) {
+    throw new Error('Trend provider did not return any trends');
   }
-
-  const { system, user } = buildTrendPrompt(topicName, modeLabel, clamped);
-
-  const response = await client.chat.completions.create({
-    model,
-    messages: [
-      { role: 'system', content: system },
-      { role: 'user', content: user },
-    ],
-    temperature: 0.6,
-    response_format: { type: 'json_object' },
-  });
-
-  const content = response.choices[0]?.message?.content;
-  console.info('[trends] raw response:', content);
-  const parsed = safeParseTrends(content);
-  if (!parsed.length) {
-    console.error('[trends] invalid JSON or missing trends array:', content);
-    throw new Error('OpenAI response did not include valid trends');
-  }
-  return parsed.slice(0, clamped);
+  setTrends(trends);
+  return trends;
 }
 
-function buildTrendPrompt(topicName, modeLabel, count) {
-  const system = [
-    'Du bist Trend-Analyst für X (Twitter).',
-    'Antworte immer auf Deutsch.',
-    'Basis: weltweite Diskussionen der letzten 24–72 Stunden.',
-    'Bewerte Trends nach Diskussionsdichte (Replies wichtiger als Likes) und wiederkehrenden Narrativen.',
-    'Keine generischen Dauerbrenner, keine historischen oder zeitlosen Themen.',
-    'Output-Format: JSON mit dem Feld "trends" als Array von Strings.',
-    'Jeder Eintrag ist eine kurze Trend-Phrase (keine vollständigen Sätze, keine Posts).',
-    'Kein Text außerhalb des JSON.',
-    `Gib ${count} Einträge aus.`,
-  ].join(' ');
+async function fetchTrendsForProvider(providerId, topicName, mode, count = 7) {
+  if (!topicName) {
+    throw new Error('topicName is required');
+  }
+  const modeLabel = MODE_MAP[mode];
+  if (!modeLabel) {
+    throw new Error('mode is invalid');
+  }
+  const clamped = clampCount(count);
+  const provider = getTrendProvider(providerId);
+  if (!provider) {
+    throw new Error('trend provider is invalid');
+  }
+  const availability = getTrendProviderAvailability();
+  if (!availability[providerId]) {
+    throw new Error(`API key for ${providerId} is missing`);
+  }
+  try {
+    const trends = await provider.fetchTrends({ topicName, mode, modeLabel, count: clamped });
+    if (!Array.isArray(trends) || !trends.length) {
+      throw new Error('Trend provider did not return any trends');
+    }
+    return trends.slice(0, clamped);
+  } catch (error) {
+    if (providerId === 'grok') {
+      console.error('Grok TrendProvider failed', error);
+    }
+    throw error;
+  }
+}
 
-  const user = [
-    `Thema: ${topicName}`,
-    `Modus: ${modeLabel}`,
-    'Liefere Trend-Ideen als Grundlage für spätere X-Posts.',
-  ].join('\n');
-  return { system, user };
+function buildTrendPrompt(topicName, mode, count) {
+  const modeLabel = MODE_MAP[mode];
+  if (!modeLabel) {
+    throw new Error('mode is invalid');
+  }
+  const clamped = clampCount(count);
+  const { provider } = resolveTrendProvider();
+  if (!provider?.buildPrompt) {
+    return null;
+  }
+  return provider.buildPrompt(topicName, modeLabel, clamped);
 }
 
 function clampCount(value) {
@@ -72,55 +74,23 @@ function clampCount(value) {
   return Math.min(10, Math.max(5, number));
 }
 
-function safeParseTrends(payload) {
-  try {
-    const json = JSON.parse(payload);
-    const trends = Array.isArray(json.trends) ? json.trends : null;
-    if (!trends) {
-      return [];
-    }
-    return trends.map((item) => String(item).trim()).filter(Boolean);
-  } catch (err) {
-    return [];
+function resolveTrendProvider() {
+  const settings = getSettings();
+  const providerId = settings.trendProvider || 'openai';
+  const provider = getTrendProvider(providerId);
+  if (!provider) {
+    throw new Error('trend provider is invalid');
   }
-}
-
-function buildFallback(topicName, modeLabel, count) {
-  const base = fallbackSeeds[modeLabel] || fallbackSeeds['Aktuelle Trends'];
-  const results = [];
-  for (let i = 0; i < count; i += 1) {
-    const seed = base[i % base.length];
-    results.push(`${seed} rund um ${topicName}.`);
+  const availability = getTrendProviderAvailability();
+  if (!availability[providerId]) {
+    throw new Error(`API key for ${providerId} is missing`);
   }
-  return results;
+  return { providerId, provider };
 }
-
-const fallbackSeeds = {
-  'Aktuelle Trends': [
-    'Spontaner Hype um neue Produkt-Launches',
-    'Live-Diskussionen nach einem internationalen Event',
-    'Community-Reaktionen auf überraschende Ankündigungen',
-    'Vergleiche zwischen zwei konkurrierenden Angeboten',
-    'Kurzfristige Preisbewegungen mit starkem Echo',
-  ],
-  'Kontroverse Themen': [
-    'Streit um Transparenz, Gebühren oder Fairness',
-    'Polarisierende Meinungen zu Regulierung oder Regeln',
-    'Heftige Debatte nach einem öffentlichen Fehltritt',
-    'Kontroverse um Datennutzung und Privatsphäre',
-    'Spaltung zwischen Early Adopters und Skeptikern',
-  ],
-  'Offene Fragen': [
-    'Viele fragen nach der besten nächsten Handlung',
-    'Unsicherheit über die langfristigen Auswirkungen',
-    'Fragen nach Empfehlungen und Alternativen',
-    'Diskussion über Risiken vs. Chancen',
-    'Offene Frage nach dem richtigen Timing',
-  ],
-};
 
 module.exports = {
   generateTrendsForTopic,
+  fetchTrendsForProvider,
   MODE_MAP,
   clampCount,
   buildTrendPrompt,
