@@ -1,4 +1,4 @@
-const { buildTrend, parseTrendPayload } = require('./utils');
+const { buildTrend } = require('./utils');
 
 const GROK_MODEL = 'grok-4-fast-non-reasoning';
 const GROK_ENDPOINT = 'https://api.x.ai/v1/chat/completions';
@@ -85,24 +85,37 @@ function createGrokTrendProvider() {
         throw new Error('Grok response was not valid JSON');
       }
       const content = data.choices?.[0]?.message?.content;
-      const items = parseTrendPayload(content);
-      const trends = items
-        .map((item) =>
-          buildTrend({
-            title: item?.title,
-            description: item?.description,
-            provider: 'grok',
-            sources: item?.sources,
-          })
-        )
-        .filter(Boolean);
-
+      const trends = extractTrendsFromText(content, count);
       if (!trends.length) {
         throw new Error('Grok response did not include valid trends');
       }
-      return trends.slice(0, count);
+      return trends;
     },
   };
+}
+
+function extractTrendsFromText(text, count) {
+  if (!text) {
+    return [];
+  }
+  const limit = Math.min(10, Math.max(1, Number(count) || 10));
+  const lines = String(text)
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => line.replace(/^[-*•\d)+.\s]+/, '').trim())
+    .filter(Boolean)
+    .slice(0, limit);
+  return lines
+    .map((line) =>
+      buildTrend({
+        title: line,
+        description: line,
+        provider: 'grok',
+        sources: ['x'],
+      })
+    )
+    .filter(Boolean);
 }
 
 module.exports = {
