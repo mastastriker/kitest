@@ -7,6 +7,7 @@ const manualPicker = document.getElementById('manual-picker');
 const rssSummary = document.getElementById('rss-summary');
 const statusBadge = document.getElementById('generator-status');
 const themeWarning = document.getElementById('theme-warning');
+const countSelect = document.getElementById('generator-count');
 const submitButton = form.querySelector('button[type="submit"]');
 
 let themes = [];
@@ -190,8 +191,9 @@ form.addEventListener('submit', async (event) => {
   setStatus('Generiere ...');
   const mode = getMode();
   const theme = themeSelect.value;
+  const count = Number(countSelect?.value || 3);
 
-  const payload = { theme, mode };
+  const payload = { theme, mode, count };
   if (mode === 'manual') {
     const article = buildManualArticle();
     if (!article || !article.link) {
@@ -213,7 +215,8 @@ form.addEventListener('submit', async (event) => {
     if (!res.ok) {
       throw new Error(data.error || 'Generierung fehlgeschlagen.');
     }
-    setStatus('Draft erstellt');
+    const total = data.drafts?.length || 0;
+    setStatus(total ? `${total} Drafts erstellt` : 'Draft erstellt');
   } catch (error) {
     setStatus(error.message, 'danger');
   } finally {
