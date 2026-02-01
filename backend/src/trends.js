@@ -25,6 +25,30 @@ async function generateTrendsForTopic(topicName, mode, count = 7) {
   return trends;
 }
 
+async function fetchTrendsForProvider(providerId, topicName, mode, count = 7) {
+  if (!topicName) {
+    throw new Error('topicName is required');
+  }
+  const modeLabel = MODE_MAP[mode];
+  if (!modeLabel) {
+    throw new Error('mode is invalid');
+  }
+  const clamped = clampCount(count);
+  const provider = getTrendProvider(providerId);
+  if (!provider) {
+    throw new Error('trend provider is invalid');
+  }
+  const availability = getTrendProviderAvailability();
+  if (!availability[providerId]) {
+    return [];
+  }
+  const trends = await provider.fetchTrends({ topicName, mode, modeLabel, count: clamped });
+  if (!Array.isArray(trends) || !trends.length) {
+    return [];
+  }
+  return trends.slice(0, clamped);
+}
+
 function buildTrendPrompt(topicName, mode, count) {
   const modeLabel = MODE_MAP[mode];
   if (!modeLabel) {
@@ -59,6 +83,7 @@ function resolveTrendProvider() {
 
 module.exports = {
   generateTrendsForTopic,
+  fetchTrendsForProvider,
   MODE_MAP,
   clampCount,
   buildTrendPrompt,

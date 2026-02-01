@@ -16,6 +16,7 @@ const {
   getSettings,
   updateSettings,
   getTrends,
+  setTrends,
   getThemes,
   addTheme,
   updateTheme,
@@ -29,7 +30,13 @@ const {
   buildPostPromptForTopic,
   buildTrendPostPrompt,
 } = require('./chatgpt');
-const { generateTrendsForTopic, MODE_MAP, clampCount, buildTrendPrompt } = require('./trends');
+const {
+  generateTrendsForTopic,
+  fetchTrendsForProvider,
+  MODE_MAP,
+  clampCount,
+  buildTrendPrompt,
+} = require('./trends');
 const { parseFeed } = require('./news');
 const { getDraftThemes, getDraftTheme } = require('./draftConfig');
 const { getApiKeyStatus, setApiKey } = require('./settings');
@@ -246,14 +253,17 @@ app.post('/api/trends/refresh', async (req, res) => {
   if (!theme) {
     return res.status(400).json({ error: 'theme is invalid' });
   }
-  const { trendProvider } = getSettings();
-  const providerStatus = getApiKeyStatus();
-  if (!providerStatus[trendProvider]) {
-    return res.status(400).json({ error: `API key for ${trendProvider} is missing` });
-  }
   try {
-    const trends = await generateTrendsForTopic(theme.label, 'current', clampCount(count));
-    return res.json({ trends });
+    const [grokTrends, openaiTrends] = await Promise.all([
+      fetchTrendsForProvider('grok', theme.label, 'current', clampCount(count)),
+      fetchTrendsForProvider('openai', theme.label, 'current', clampCount(count)),
+    ]);
+    const merged = [...grokTrends, ...openaiTrends];
+    if (!merged.length) {
+      return res.status(400).json({ error: 'No providers are available' });
+    }
+    setTrends(merged);
+    return res.json({ trends: merged });
   } catch (err) {
     console.error('[trends-refresh] generation failed', {
       message: err.message,

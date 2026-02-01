@@ -9,7 +9,8 @@ const statusBadge = document.getElementById('generator-status');
 const themeWarning = document.getElementById('theme-warning');
 const countButtons = Array.from(document.querySelectorAll('.count-button'));
 const submitButton = form.querySelector('button[type="submit"]');
-const trendList = document.getElementById('trend-list');
+const trendListGrok = document.getElementById('trend-list-grok');
+const trendListOpenAI = document.getElementById('trend-list-openai');
 const trendStatus = document.getElementById('trend-status');
 const trendRefreshButton = document.getElementById('trend-refresh');
 
@@ -48,13 +49,13 @@ const readStored = (key) => {
   }
 };
 
-const renderTrends = (trends = []) => {
-  if (!trendList) return;
+const renderTrendColumn = (container, trends = []) => {
+  if (!container) return;
   if (!Array.isArray(trends) || !trends.length) {
-    trendList.innerHTML = '<p class="muted small">Keine Trends geladen.</p>';
+    container.innerHTML = '<p class="muted small">Keine Trends geladen.</p>';
     return;
   }
-  trendList.innerHTML = '';
+  container.innerHTML = '';
   trends.forEach((trend) => {
     const item = document.createElement('div');
     item.className = 'trend-item';
@@ -63,12 +64,21 @@ const renderTrends = (trends = []) => {
     title.textContent = trend.title || 'Ohne Titel';
     const meta = document.createElement('span');
     meta.className = 'trend-meta muted small';
-    const provider = trend.provider ? trend.provider.toUpperCase() : 'UNBEKANNT';
     const createdAt = trend.created_at ? new Date(trend.created_at).toLocaleString('de-DE') : '';
-    meta.textContent = [provider, createdAt].filter(Boolean).join(' · ');
+    meta.textContent = createdAt;
     item.append(title, meta);
-    trendList.appendChild(item);
+    container.appendChild(item);
   });
+};
+
+const renderTrends = (trends = []) => {
+  const byProvider = (provider) =>
+    (Array.isArray(trends) ? trends : [])
+      .filter((trend) => trend.provider === provider)
+      .sort((a, b) => Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0))
+      .slice(0, 10);
+  renderTrendColumn(trendListGrok, byProvider('grok'));
+  renderTrendColumn(trendListOpenAI, byProvider('openai'));
 };
 
 const fetchCurrentTrends = async () => {

@@ -229,6 +229,16 @@ h3 {
   gap: 8px;
 }
 
+.trend-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.trend-column h3 {
+  margin-bottom: 8px;
+}
+
 .trend-item {
   display: flex;
   justify-content: space-between;
