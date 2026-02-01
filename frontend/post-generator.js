@@ -7,17 +7,26 @@ const manualPicker = document.getElementById('manual-picker');
 const rssSummary = document.getElementById('rss-summary');
 const statusBadge = document.getElementById('generator-status');
 const themeWarning = document.getElementById('theme-warning');
-const countSelect = document.getElementById('generator-count');
+const countButtons = Array.from(document.querySelectorAll('.count-button'));
 const submitButton = form.querySelector('button[type="submit"]');
 
 let themes = [];
 let themeRegistry = new Map();
 let cachedCandidates = [];
 let isGenerating = false;
+let selectedCount = 1;
 
 const setStatus = (message, tone = 'default') => {
   statusBadge.textContent = message;
   statusBadge.classList.toggle('danger', tone === 'danger');
+};
+
+const setSelectedCount = (count) => {
+  selectedCount = count;
+  countButtons.forEach((button) => {
+    const value = Number(button.dataset.count || 0);
+    button.classList.toggle('is-active', value === selectedCount);
+  });
 };
 
 const readStored = (key) => {
@@ -175,6 +184,13 @@ form.addEventListener('change', (event) => {
   }
 });
 
+countButtons.forEach((button) => {
+  button.addEventListener('click', () => {
+    const value = Number(button.dataset.count || 1);
+    setSelectedCount(value);
+  });
+});
+
 themeSelect.addEventListener('change', () => {
   updateThemeWarning();
 });
@@ -191,13 +207,17 @@ form.addEventListener('submit', async (event) => {
   setStatus('Generiere ...');
   const mode = getMode();
   const theme = themeSelect.value;
-  const count = Number(countSelect?.value || 3);
+  const count = selectedCount;
 
   const payload = { theme, mode, count };
   if (mode === 'manual') {
     const article = buildManualArticle();
     if (!article || !article.link) {
       setStatus('Bitte einen gültigen RSS-Artikel auswählen.', 'danger');
+      isGenerating = false;
+      if (submitButton) {
+        submitButton.disabled = false;
+      }
       return;
     }
     payload.article = article;
@@ -233,6 +253,7 @@ const init = async () => {
   renderManualPicker();
   await loadRssCandidates();
   setModeVisibility();
+  setSelectedCount(selectedCount);
 };
 
 init();

@@ -54,13 +54,20 @@
               </label>
             </div>
           </label>
-          <label>
-            Anzahl Entwürfe
-            <select id="generator-count">
-              <option value="3" selected>3 Entwürfe</option>
-              <option value="5">5 Entwürfe</option>
-            </select>
-          </label>
+          <div class="stack">
+            <span>Anzahl Entwürfe</span>
+            <div class="inline-actions" role="group" aria-label="Anzahl Entwürfe auswählen">
+              <button type="button" class="count-button is-active" data-count="1">
+                Einen Entwurf generieren
+              </button>
+              <button type="button" class="count-button" data-count="3">
+                Drei Entwürfe generieren
+              </button>
+              <button type="button" class="count-button" data-count="5">
+                Fünf Entwürfe generieren
+              </button>
+            </div>
+          </div>
           <div id="rss-summary" class="muted small"></div>
           <div id="manual-picker" class="stack"></div>
           <button type="submit">X-Post-Entwürfe generieren</button>

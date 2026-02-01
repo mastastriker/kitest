@@ -166,6 +166,28 @@ h3 {
   flex-wrap: wrap;
 }
 
+.count-button {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+  box-shadow: none;
+}
+
+.count-button:hover {
+  transform: translateY(-1px);
+}
+
+.count-button.is-active {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.18);
+}
+
 .badge {
   display: inline-flex;
   align-items: center;
