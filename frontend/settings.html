@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Settings</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="theme-toggle">
+      <span>Dark Mode</span>
+      <label class="switch">
+        <input id="theme-toggle" type="checkbox" />
+        <span class="slider"></span>
+      </label>
+    </div>
+    <main class="page">
+      <nav class="primary-nav" aria-label="Hauptnavigation">
+        <a class="nav-home" href="index.html" aria-label="Post Generator">🏠</a>
+        <a href="index.html">Post Generator</a>
+        <a href="drafts.html">Entwürfe &amp; Freigabe</a>
+        <a href="posts.html">Posts Übersicht</a>
+        <a href="news.html">News</a>
+        <a href="themes.html">Themen</a>
+        <a href="settings.html" class="is-active" aria-current="page">Settings</a>
+      </nav>
+      <header>
+        <h1>Settings</h1>
+        <p class="lede">Verwalte Trend-Provider und API-Keys lokal über die .env.</p>
+      </header>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Trend Provider Auswahl</h2>
+        </div>
+        <form id="provider-form" class="stack">
+          <p class="muted small">
+            Die Auswahl ist global und wird pro Klick auf Trend-Abruf ausgewertet. Kein automatisches
+            Fallback.
+          </p>
+          <div class="inline-actions" role="group" aria-label="Trend Provider auswählen">
+            <label class="inline-toggle">
+              <input type="radio" name="trend-provider" value="grok" />
+              Grok
+              <span class="status-pill" data-status="grok">nicht gesetzt</span>
+            </label>
+            <label class="inline-toggle">
+              <input type="radio" name="trend-provider" value="openai" />
+              OpenAI
+              <span class="status-pill" data-status="openai">nicht gesetzt</span>
+            </label>
+          </div>
+          <p id="provider-message" class="muted small" role="status" aria-live="polite"></p>
+          <button type="submit">Auswahl speichern</button>
+        </form>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>API Keys (lokal)</h2>
+        </div>
+        <p class="muted small">Keys werden ausschließlich in der .env gespeichert und nie angezeigt.</p>
+        <div class="stack">
+          <form class="stack key-form" data-provider="openai">
+            <label>
+              OpenAI API Key
+              <input type="password" name="api-key" placeholder="Neuen OpenAI API-Key eingeben" />
+            </label>
+            <button type="submit">OpenAI Key speichern</button>
+          </form>
+          <form class="stack key-form" data-provider="grok">
+            <label>
+              xAI (Grok) API Key
+              <input type="password" name="api-key" placeholder="Neuen Grok API-Key eingeben" />
+            </label>
+            <button type="submit">Grok Key speichern</button>
+          </form>
+        </div>
+        <p id="key-message" class="muted small" role="status" aria-live="polite"></p>
+      </section>
+    </main>
+    <script src="theme.js"></script>
+    <script src="settings.js"></script>
+  </body>
+</html>

@@ -5,6 +5,9 @@ const { getPostPropertyMap } = require('./postProperties');
 
 const STORE_PATH = path.join(__dirname, '..', 'data', 'store.json');
 const ENCODING = 'utf-8';
+const DEFAULT_SETTINGS = {
+  trendProvider: 'openai',
+};
 
 function ensureStoreFile() {
   const dir = path.dirname(STORE_PATH);
@@ -12,7 +15,7 @@ function ensureStoreFile() {
     fs.mkdirSync(dir, { recursive: true });
   }
   if (!fs.existsSync(STORE_PATH)) {
-    const initial = { topics: [], posts: [], drafts: [], themes: [] };
+    const initial = { topics: [], posts: [], drafts: [], themes: [], settings: DEFAULT_SETTINGS, trends: [] };
     fs.writeFileSync(STORE_PATH, JSON.stringify(initial, null, 2), ENCODING);
   }
 }
@@ -38,6 +41,14 @@ function readStore() {
     parsed.themes = [];
     changed = true;
   }
+  if (!parsed.settings || typeof parsed.settings !== 'object') {
+    parsed.settings = { ...DEFAULT_SETTINGS };
+    changed = true;
+  }
+  if (!Array.isArray(parsed.trends)) {
+    parsed.trends = [];
+    changed = true;
+  }
   if (changed) {
     writeStore(parsed);
   }
@@ -46,6 +57,38 @@ function readStore() {
 
 function writeStore(data) {
   fs.writeFileSync(STORE_PATH, JSON.stringify(data, null, 2), ENCODING);
+}
+
+function getSettings() {
+  const store = readStore();
+  return { ...DEFAULT_SETTINGS, ...(store.settings || {}) };
+}
+
+function updateSettings(updates = {}) {
+  const store = readStore();
+  const next = { ...DEFAULT_SETTINGS, ...(store.settings || {}) };
+  if (typeof updates.trendProvider === 'string') {
+    if (!['openai', 'grok'].includes(updates.trendProvider)) {
+      throw new Error('trendProvider is invalid');
+    }
+    next.trendProvider = updates.trendProvider;
+  }
+  store.settings = next;
+  writeStore(store);
+  return next;
+}
+
+function getTrendEntries() {
+  const store = readStore();
+  return store.trends || [];
+}
+
+function addTrendEntry(entry) {
+  const store = readStore();
+  store.trends = Array.isArray(store.trends) ? store.trends : [];
+  store.trends.push(entry);
+  writeStore(store);
+  return entry;
 }
 
 function generateId(prefix = 'id') {
@@ -430,6 +473,10 @@ module.exports = {
   updatePostDraftStatus,
   deletePostDraft,
   deletePostDraftsByStatus,
+  getSettings,
+  updateSettings,
+  getTrendEntries,
+  addTrendEntry,
   getThemes,
   getTheme,
   addTheme,

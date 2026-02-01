@@ -13,6 +13,8 @@ const {
   updatePost,
   updatePostWithPrompt,
   deleteTopic,
+  getSettings,
+  updateSettings,
   getThemes,
   addTheme,
   updateTheme,
@@ -29,6 +31,7 @@ const {
 const { generateTrendsForTopic, MODE_MAP, clampCount, buildTrendPrompt } = require('./trends');
 const { parseFeed } = require('./news');
 const { getDraftThemes, getDraftTheme } = require('./draftConfig');
+const { getApiKeyStatus, setApiKey } = require('./settings');
 const {
   generateDraft,
   approveDraft,
@@ -71,6 +74,34 @@ app.get('/api/post-properties', (req, res) => {
   res.json({
     properties: getPostProperties().map(({ id, label }) => ({ id, label })),
   });
+});
+
+app.get('/api/settings', (req, res) => {
+  res.json({ settings: getSettings(), providerStatus: getApiKeyStatus() });
+});
+
+app.put('/api/settings', (req, res) => {
+  const { trendProvider } = req.body || {};
+  const providerStatus = getApiKeyStatus();
+  if (trendProvider && !providerStatus[trendProvider]) {
+    return res.status(400).json({ error: 'provider is unavailable' });
+  }
+  try {
+    const settings = updateSettings({ trendProvider });
+    return res.json({ settings, providerStatus });
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+app.post('/api/settings/api-keys', (req, res) => {
+  const { provider, apiKey } = req.body || {};
+  try {
+    setApiKey(provider, apiKey);
+    return res.json({ providerStatus: getApiKeyStatus() });
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
 });
 
 app.get('/api/topics', (req, res) => {
@@ -185,9 +216,14 @@ app.post('/api/trends', async (req, res) => {
   if (!MODE_MAP[mode]) {
     return res.status(400).json({ error: 'mode is invalid' });
   }
+  const { trendProvider } = getSettings();
+  const providerStatus = getApiKeyStatus();
+  if (!providerStatus[trendProvider]) {
+    return res.status(400).json({ error: `API key for ${trendProvider} is missing` });
+  }
   try {
     const trends = await generateTrendsForTopic(topic.name, mode, clampCount(count));
-    const prompt = buildTrendPrompt(topic.name, MODE_MAP[mode], clampCount(count));
+    const prompt = buildTrendPrompt(topic.name, mode, clampCount(count));
     return res.json({ topic, mode, trends, prompt });
   } catch (err) {
     console.error('[trends] generation failed', {
@@ -205,12 +241,14 @@ app.post('/api/trends/post', async (req, res) => {
   if (!topic) {
     return res.status(404).json({ error: 'topic not found' });
   }
-  if (!trend) {
+  const trendText =
+    typeof trend === 'string' ? trend : trend?.description || trend?.title || '';
+  if (!trendText) {
     return res.status(400).json({ error: 'trend is required' });
   }
   try {
-    const text = await generatePostFromTrend(topic, trend);
-    const prompt = buildTrendPostPrompt(topic, trend);
+    const text = await generatePostFromTrend(topic, trendText);
+    const prompt = buildTrendPostPrompt(topic, trendText);
     const [post] = addPosts(topic.id, [text], {
       prompt,
       promptText: formatPromptText(prompt),
@@ -233,10 +271,12 @@ app.post('/api/trends/post/prompt', (req, res) => {
   if (!topic) {
     return res.status(404).json({ error: 'topic not found' });
   }
-  if (!trend) {
+  const trendText =
+    typeof trend === 'string' ? trend : trend?.description || trend?.title || '';
+  if (!trendText) {
     return res.status(400).json({ error: 'trend is required' });
   }
-  const prompt = buildTrendPostPrompt(topic, trend);
+  const prompt = buildTrendPostPrompt(topic, trendText);
   return res.json({ prompt, prompt_text: formatPromptText(prompt) });
 });
 

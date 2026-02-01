@@ -376,8 +376,16 @@ async function generateDraftForTheme(themeId, payload, count) {
 
   if (sourceType === 'trend') {
     const trends = await generateTrendsForTopic(themeId, 'current', Math.max(requestedCount, 5));
-    const uniqueTrends = [...new Set(trends.filter(Boolean).map((trend) => String(trend).trim()))]
-      .filter(Boolean);
+    const uniqueTrends = [];
+    const seen = new Set();
+    trends.forEach((trend) => {
+      const title = String(trend?.title || '').trim();
+      if (!title || seen.has(title)) {
+        return;
+      }
+      seen.add(title);
+      uniqueTrends.push(trend);
+    });
     if (!uniqueTrends.length) {
       throw new Error('Keine Trenddaten verfügbar');
     }
@@ -385,9 +393,10 @@ async function generateDraftForTheme(themeId, payload, count) {
     for (const trend of uniqueTrends) {
       if (drafts.length >= requestedCount) break;
       try {
+        const trendText = trend.description || trend.title;
         const generated = await generateDraftFromArticle(themeId, 'trend', {
-          title: `Trend: ${trend}`,
-          content: trend,
+          title: `Trend: ${trend.title}`,
+          content: trendText,
           link: '',
           source: 'Trend-Quelle',
         });
