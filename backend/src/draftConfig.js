@@ -16,12 +16,12 @@ const THEMES = {
       {
         id: 'erklärend',
         label: 'Erklärend',
-        prompt: 'Führe kurz in die Relevanz ein, ohne belehrend zu wirken.',
+        prompt: 'Starte mit einer nüchternen Beobachtung ohne Erklärung oder Einordnung.',
       },
       {
         id: 'fragend',
         label: 'Fragend',
-        prompt: 'Schließe mit einer klaren Frage, die Reaktionen triggert.',
+        prompt: 'Schließe mit einer klaren Frage ohne Community-CTA.',
       },
     ],
   },
@@ -42,12 +42,12 @@ const THEMES = {
       {
         id: 'erklärend',
         label: 'Erklärend',
-        prompt: 'Erkläre kurz den konkreten Nutzen oder Schaden.',
+        prompt: 'Setze eine klare Beobachtung ohne Erklärung des Nutzens.',
       },
       {
         id: 'fragend',
         label: 'Fragend',
-        prompt: 'Stelle eine direkte Frage an die Community.',
+        prompt: 'Stelle eine direkte Frage ohne Community-CTA.',
       },
     ],
   },
