@@ -1,6 +1,6 @@
 const { buildTrend, parseTrendPayload } = require('./utils');
 
-const model = process.env.GROK_MODEL || 'grok-2-latest';
+const GROK_MODEL = 'grok-4-fast-non-reasoning';
 const GROK_ENDPOINT = 'https://api.x.ai/v1/chat/completions';
 
 function buildGrokTrendPrompt(topicName, modeLabel, count) {
@@ -54,7 +54,7 @@ function createGrokTrendProvider() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model,
+            model: GROK_MODEL,
             messages: [
               { role: 'system', content: systemMessage },
               { role: 'user', content: userMessage },
