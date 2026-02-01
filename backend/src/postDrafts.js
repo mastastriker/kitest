@@ -362,7 +362,8 @@ function pickEligibleArticles(articles) {
 }
 
 async function generateDraftForTheme(themeId, payload, count) {
-  const limits = canGenerateDraft(themeId, count);
+  const requestedCount = Math.max(1, Number(count) || 1);
+  const limits = canGenerateDraft(themeId, requestedCount);
   if (!limits.ok) {
     const message =
       limits.reason === 'max-generated'
@@ -374,29 +375,42 @@ async function generateDraftForTheme(themeId, payload, count) {
   const sourceType = payload.source_type || 'rss';
 
   if (sourceType === 'trend') {
-    const trends = await generateTrendsForTopic(themeId, 'current', 5);
-    const trend = trends.find(Boolean);
-    if (!trend) {
+    const trends = await generateTrendsForTopic(themeId, 'current', Math.max(requestedCount, 5));
+    const uniqueTrends = [...new Set(trends.filter(Boolean).map((trend) => String(trend).trim()))]
+      .filter(Boolean);
+    if (!uniqueTrends.length) {
       throw new Error('Keine Trenddaten verfügbar');
     }
-    const generated = await generateDraftsFromArticle(themeId, 'trend', {
-      title: `Trend: ${trend}`,
-      content: trend,
-      link: '',
-      source: 'Trend-Quelle',
-    }, count);
-    if (generated.skipped) {
+    const drafts = [];
+    for (const trend of uniqueTrends) {
+      if (drafts.length >= requestedCount) break;
+      try {
+        const generated = await generateDraftFromArticle(themeId, 'trend', {
+          title: `Trend: ${trend}`,
+          content: trend,
+          link: '',
+          source: 'Trend-Quelle',
+        });
+        if (generated.skipped) {
+          continue;
+        }
+        drafts.push(
+          addPostDraft({
+            theme: themeId,
+            content: generated.content,
+            status: 'generated',
+            source_type: 'trend',
+            source_ref: null,
+          })
+        );
+      } catch (error) {
+        continue;
+      }
+    }
+    if (!drafts.length) {
       throw new Error('Trend-Idee war nicht stark genug');
     }
-    return generated.drafts.map((draft) =>
-      addPostDraft({
-        theme: themeId,
-        content: draft.content,
-        status: 'generated',
-        source_type: 'trend',
-        source_ref: null,
-      })
-    );
+    return drafts;
   }
 
   const article = payload.article;
@@ -411,36 +425,39 @@ async function generateDraftForTheme(themeId, payload, count) {
     throw new Error('Für diesen Artikel existiert bereits ein Draft.');
   }
 
-  const generated = await generateDraftsFromArticle(themeId, sourceType, normalized, count);
+  const generated = await generateDraftFromArticle(themeId, sourceType, normalized);
   if (generated.skipped) {
     throw new Error('Artikel ist für einen Draft nicht stark genug.');
   }
-  return generated.drafts.map((draft) =>
+  return [
     addPostDraft({
       theme: themeId,
-      content: draft.content,
+      content: generated.content,
       status: 'generated',
       source_type: sourceType,
       source_ref: normalized.link,
-    })
-  );
+    }),
+  ];
 }
 
 async function generateDraftFromCandidates(themeId, candidates, count) {
   const articles = pickEligibleArticles(candidates || []);
+  const requestedCount = Math.max(1, Number(count) || 1);
+  const drafts = [];
   for (const article of articles) {
+    if (drafts.length >= requestedCount) break;
     if (hasDraftForSource(article.link)) {
       continue;
     }
     try {
-      const generated = await generateDraftsFromArticle(themeId, 'rss', article, count);
+      const generated = await generateDraftFromArticle(themeId, 'rss', article);
       if (generated.skipped) {
         continue;
       }
-      return generated.drafts.map((draft) =>
+      drafts.push(
         addPostDraft({
           theme: themeId,
-          content: draft.content,
+          content: generated.content,
           status: 'generated',
           source_type: 'rss',
           source_ref: article.link,
@@ -450,12 +467,22 @@ async function generateDraftFromCandidates(themeId, candidates, count) {
       continue;
     }
   }
-  return null;
+  return drafts.length ? drafts : null;
 }
 
 async function generateDraft(themeId, payload) {
-  const count = payload.count || 3;
-  const limits = canGenerateDraft(themeId, count);
+  const requestedCount = payload.count || 3;
+  let desiredCount = requestedCount;
+  if (payload.mode === 'manual') {
+    desiredCount = 1;
+  } else if (Array.isArray(payload.candidates)) {
+    const availableCount = pickEligibleArticles(payload.candidates)
+      .filter((article) => !hasDraftForSource(article.link)).length;
+    if (availableCount > 0) {
+      desiredCount = Math.min(requestedCount, availableCount);
+    }
+  }
+  const limits = canGenerateDraft(themeId, desiredCount);
   if (!limits.ok) {
     const message =
       limits.reason === 'max-generated'
@@ -468,17 +495,17 @@ async function generateDraft(themeId, payload) {
     return generateDraftForTheme(themeId, {
       source_type: 'manual',
       article: payload.article,
-    }, count);
+    }, desiredCount);
   }
 
-  const drafts = await generateDraftFromCandidates(themeId, payload.candidates || [], count);
+  const drafts = await generateDraftFromCandidates(themeId, payload.candidates || [], desiredCount);
   if (drafts) {
     return drafts;
   }
 
   return generateDraftForTheme(themeId, {
     source_type: 'trend',
-  }, count);
+  }, desiredCount);
 }
 
 function approveDraft(draftId) {
