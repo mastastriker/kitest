@@ -92,6 +92,25 @@ const deleteDraft = async (id) => {
   renderDrafts();
 };
 
+const copyDraftContent = async (content, button) => {
+  if (!navigator.clipboard) {
+    alert('Clipboard API ist nicht verfügbar.');
+    return;
+  }
+  button.disabled = true;
+  try {
+    await navigator.clipboard.writeText(content);
+    button.textContent = 'Kopiert!';
+    setTimeout(() => {
+      button.textContent = 'Für X kopieren';
+      button.disabled = false;
+    }, 1200);
+  } catch (error) {
+    button.disabled = false;
+    alert('Kopieren fehlgeschlagen.');
+  }
+};
+
 const clearArchivedDrafts = async () => {
   const res = await fetch('/api/post-drafts/archived', { method: 'DELETE' });
   const data = await res.json();
@@ -162,6 +181,14 @@ const renderDrafts = () => {
       approveButton.textContent = 'Freigeben';
       approveButton.addEventListener('click', () => approveDraft(draft.id));
       actions.appendChild(approveButton);
+    }
+
+    if (draft.status === 'approved') {
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.textContent = 'Für X kopieren';
+      copyButton.addEventListener('click', () => copyDraftContent(draft.content, copyButton));
+      actions.appendChild(copyButton);
     }
 
     if (draft.status === 'generated' || draft.status === 'approved') {

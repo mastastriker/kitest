@@ -6,9 +6,11 @@ const themeSelect = document.getElementById('generator-theme');
 const manualPicker = document.getElementById('manual-picker');
 const rssSummary = document.getElementById('rss-summary');
 const statusBadge = document.getElementById('generator-status');
+const themeWarning = document.getElementById('theme-warning');
 const submitButton = form.querySelector('button[type="submit"]');
 
 let themes = [];
+let themeRegistry = new Map();
 let cachedCandidates = [];
 let isGenerating = false;
 
@@ -34,6 +36,7 @@ const renderThemes = () => {
     option.textContent = theme.label;
     themeSelect.appendChild(option);
   });
+  updateThemeWarning();
 };
 
 const fetchThemes = async () => {
@@ -41,6 +44,33 @@ const fetchThemes = async () => {
   const data = await res.json();
   themes = data.themes || [];
   renderThemes();
+};
+
+const fetchThemeRegistry = async () => {
+  try {
+    const res = await fetch('/api/themes');
+    const data = await res.json();
+    themeRegistry = new Map((data.themes || []).map((theme) => [theme.key, theme]));
+  } catch (error) {
+    themeRegistry = new Map();
+  }
+  updateThemeWarning();
+};
+
+const updateThemeWarning = () => {
+  if (!themeWarning) return;
+  const selected = themeSelect.value;
+  const selectedTheme = themeRegistry.get(selected);
+  if (selectedTheme && !selectedTheme.active) {
+    themeWarning.textContent =
+      'Hinweis: Dieses Theme ist in der Themenverwaltung als inaktiv markiert.';
+    themeWarning.classList.remove('is-hidden');
+    themeWarning.classList.add('danger');
+  } else {
+    themeWarning.textContent = '';
+    themeWarning.classList.add('is-hidden');
+    themeWarning.classList.remove('danger');
+  }
 };
 
 const fetchFeedPreview = async (feed) => {
@@ -144,6 +174,10 @@ form.addEventListener('change', (event) => {
   }
 });
 
+themeSelect.addEventListener('change', () => {
+  updateThemeWarning();
+});
+
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
   if (isGenerating) {
@@ -192,6 +226,7 @@ form.addEventListener('submit', async (event) => {
 
 const init = async () => {
   await fetchThemes();
+  await fetchThemeRegistry();
   renderManualPicker();
   await loadRssCandidates();
   setModeVisibility();

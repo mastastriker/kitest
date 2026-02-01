@@ -13,6 +13,10 @@ const {
   updatePost,
   updatePostWithPrompt,
   deleteTopic,
+  getThemes,
+  addTheme,
+  updateTheme,
+  deleteTheme,
 } = require('./store');
 const { getPostProperties } = require('./postProperties');
 const {
@@ -84,6 +88,51 @@ app.post('/api/topics', (req, res) => {
   } catch (err) {
     return res.status(400).json({ error: err.message });
   }
+});
+
+app.get('/api/themes', (req, res) => {
+  res.json({ themes: getThemes() });
+});
+
+app.post('/api/themes', (req, res) => {
+  const { key, name, active } = req.body || {};
+  if (!key || !name) {
+    return res.status(400).json({ error: 'key and name are required' });
+  }
+  try {
+    const theme = addTheme({ key, name, active });
+    return res.status(201).json({ theme });
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+app.put('/api/themes/:id', (req, res) => {
+  try {
+    const updates = req.body || {};
+    if (Object.prototype.hasOwnProperty.call(updates, 'active')) {
+      if (typeof updates.active === 'string') {
+        updates.active = updates.active.toLowerCase() === 'true';
+      } else {
+        updates.active = Boolean(updates.active);
+      }
+    }
+    const updated = updateTheme(req.params.id, updates);
+    if (!updated) {
+      return res.status(404).json({ error: 'theme not found' });
+    }
+    return res.json({ theme: updated });
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete('/api/themes/:id', (req, res) => {
+  const removed = deleteTheme(req.params.id);
+  if (!removed) {
+    return res.status(404).json({ error: 'theme not found' });
+  }
+  return res.json({ theme: removed });
 });
 
 app.get('/api/topics/:id/posts', (req, res) => {

@@ -12,7 +12,7 @@ function ensureStoreFile() {
     fs.mkdirSync(dir, { recursive: true });
   }
   if (!fs.existsSync(STORE_PATH)) {
-    const initial = { topics: [], posts: [], drafts: [] };
+    const initial = { topics: [], posts: [], drafts: [], themes: [] };
     fs.writeFileSync(STORE_PATH, JSON.stringify(initial, null, 2), ENCODING);
   }
 }
@@ -32,6 +32,10 @@ function readStore() {
   }
   if (!Array.isArray(parsed.drafts)) {
     parsed.drafts = [];
+    changed = true;
+  }
+  if (!Array.isArray(parsed.themes)) {
+    parsed.themes = [];
     changed = true;
   }
   if (changed) {
@@ -324,6 +328,91 @@ function deletePostDraftsByStatus(status) {
   return removed;
 }
 
+function getThemes() {
+  const store = readStore();
+  return store.themes;
+}
+
+function getTheme(id) {
+  const store = readStore();
+  return store.themes.find((theme) => theme.id === id);
+}
+
+function addTheme({ key, name, active }) {
+  const trimmedKey = String(key || '').trim();
+  const trimmedName = String(name || '').trim();
+  if (!trimmedKey) {
+    throw new Error('Theme key is required');
+  }
+  if (!trimmedName) {
+    throw new Error('Theme name is required');
+  }
+  const store = readStore();
+  const exists = store.themes.find(
+    (theme) => theme.key.toLowerCase() === trimmedKey.toLowerCase()
+  );
+  if (exists) {
+    throw new Error('Theme key already exists');
+  }
+  const theme = {
+    id: generateId('theme'),
+    key: trimmedKey,
+    name: trimmedName,
+    active: typeof active === 'boolean' ? active : true,
+    created_at: new Date().toISOString(),
+  };
+  store.themes.push(theme);
+  writeStore(store);
+  return theme;
+}
+
+function updateTheme(themeId, updates = {}) {
+  const store = readStore();
+  const index = store.themes.findIndex((theme) => theme.id === themeId);
+  if (index === -1) {
+    return null;
+  }
+  const theme = store.themes[index];
+  if (typeof updates.key === 'string') {
+    const trimmedKey = updates.key.trim();
+    if (!trimmedKey) {
+      throw new Error('Theme key is required');
+    }
+    const exists = store.themes.find(
+      (entry) =>
+        entry.id !== themeId && entry.key.toLowerCase() === trimmedKey.toLowerCase()
+    );
+    if (exists) {
+      throw new Error('Theme key already exists');
+    }
+    theme.key = trimmedKey;
+  }
+  if (typeof updates.name === 'string') {
+    const trimmedName = updates.name.trim();
+    if (!trimmedName) {
+      throw new Error('Theme name is required');
+    }
+    theme.name = trimmedName;
+  }
+  if (typeof updates.active === 'boolean') {
+    theme.active = updates.active;
+  }
+  store.themes[index] = theme;
+  writeStore(store);
+  return theme;
+}
+
+function deleteTheme(themeId) {
+  const store = readStore();
+  const index = store.themes.findIndex((theme) => theme.id === themeId);
+  if (index === -1) {
+    return null;
+  }
+  const [removed] = store.themes.splice(index, 1);
+  writeStore(store);
+  return removed;
+}
+
 module.exports = {
   getTopics,
   getTopic,
@@ -341,4 +430,9 @@ module.exports = {
   updatePostDraftStatus,
   deletePostDraft,
   deletePostDraftsByStatus,
+  getThemes,
+  getTheme,
+  addTheme,
+  updateTheme,
+  deleteTheme,
 };
