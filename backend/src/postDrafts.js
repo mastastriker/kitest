@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const OpenAI = require('openai');
 const { getDraftTheme } = require('./draftConfig');
 const {
@@ -16,63 +18,29 @@ const client = apiKey ? new OpenAI({ apiKey }) : null;
 
 const GENERATED_LIMIT = 10;
 const DAILY_LIMIT = 100;
-const X_MASTER_PROMPT = `You generate DRAFTS for X (Twitter).
-These are NOT explanations. These are NOT summaries.
-
-Hard rules:
-- Total length: 120–200 characters
-- Max 4 sentences
-- Prefer 2–3 short sentences
-- Each sentence must stand on its own
-
-Structure:
-- Sentence 1: a simple observation
-- Sentence 2: a clear stance
-- Optional sentence 3: provocation or question
-- No conclusions
-
-Style rules (non-negotiable):
-- Do NOT explain anything
-- Do NOT define terms
-- Do NOT summarize
-- Do NOT teach
-- Do NOT use metaphors
-- Do NOT use technical or academic language
-- Do NOT be neutral or balanced
-- Do NOT sound like a journalist
-- Do NOT sound like an influencer
-- Do NOT use phrases like:
-  "this shows that", "here's why", "in summary", "let's talk about"
-
-Tone:
-- pro crypto
-- skeptical toward power, actors, narratives
-- calm, direct, slightly annoyed
-- opinionated
-- not hype-driven
-
-Writing rules:
-- No emojis
-- No hashtags
-- No call to action
-- No explanations hidden as opinions
-
-Validation:
-If the text explains anything, it is wrong.
-If the text sounds informative, it is wrong.
-If the text could be a blog intro, it is wrong.
-
-Output:
-Generate {N} different drafts.
-Each draft must follow ALL rules above.
-Do not comment on the drafts.
-Do not explain your choices.
-Only output the drafts.`;
+const MASTER_PROMPT_PATH = path.join(
+  __dirname,
+  '..',
+  'prompts',
+  'x_master_prompt_v2_1_1.txt'
+);
+let cachedMasterPrompt = null;
 
 function ensureClient() {
   if (!client) {
     throw new Error('OpenAI client is not configured');
   }
+}
+
+function loadMasterPromptFromFile() {
+  if (cachedMasterPrompt) {
+    return cachedMasterPrompt;
+  }
+  cachedMasterPrompt = fs.readFileSync(MASTER_PROMPT_PATH, 'utf8');
+  if (!cachedMasterPrompt) {
+    throw new Error('X master prompt is empty');
+  }
+  return cachedMasterPrompt;
 }
 
 function getDraftsForTheme(themeId) {
@@ -123,19 +91,18 @@ function normalizeArticle(article) {
 
 function buildAnalysisPrompt(theme, article) {
   const system = [
-    'Du bist Redakteur für X-Posts.',
-    'Bewerte Artikel streng nach Relevanz für das Thema.',
-    'Antwort-Format: JSON ohne zusätzlichen Text.',
+    'You are an editor scoring article relevance for X posts.',
+    'Return JSON only with no extra text.',
   ].join(' ');
 
   const user = [
-    `Thema: ${theme.label}`,
-    `Titel: ${article.title}`,
-    `Inhalt: ${article.content}`,
-    'Bewerte mit Scores 0 bis 3 (0 = schwach, 3 = sehr stark).',
-    'Felder: recency, theme_fit, conflict, novelty, discussion, total_score, key_takeaway.',
-    'total_score ist die Summe der fünf Scores.',
-    'key_takeaway ist eine knappe Kernaussage in einem Satz.',
+    `Topic: ${theme.label}`,
+    `Title: ${article.title}`,
+    `Content: ${article.content}`,
+    'Score 0 to 3 (0 = weak, 3 = very strong).',
+    'Fields: recency, theme_fit, conflict, novelty, discussion, total_score, key_takeaway.',
+    'total_score is the sum of the five scores.',
+    'key_takeaway is one concise sentence.',
   ].join('\n');
 
   return { system, user };
@@ -144,43 +111,36 @@ function buildAnalysisPrompt(theme, article) {
 function buildIdeaPrompt(theme, analysis) {
   const propertyHints = theme.allowed_properties.map((item) => item.prompt).join(' ');
   const system = [
-    'Du bist Redakteur und formulierst Post-Ideen für X.',
-    'Antwort-Format: JSON mit Feld "idea". Kein zusätzlicher Text.',
+    'You are an editor crafting X post ideas.',
+    'Return JSON with field "idea" only, no extra text.',
   ].join(' ');
 
   const user = [
-    `Thema: ${theme.label}`,
-    `Kernaussage: ${analysis.key_takeaway}`,
-    `Eigenschaften: ${propertyHints}`,
-    'Formuliere eine klare These mit Blickwinkel.',
-    'Keine Zusammenfassung des Artikels.',
-    'Meinungsstark, roh, kurz.',
+    `Topic: ${theme.label}`,
+    `Key takeaway: ${analysis.key_takeaway}`,
+    `Properties: ${propertyHints}`,
+    'Write a clear thesis with a strong angle.',
+    'Do not summarize the article.',
+    'Opinionated, raw, concise.',
   ].join('\n');
 
   return { system, user };
 }
 
-function renderMasterPrompt(count) {
-  return X_MASTER_PROMPT.replace('{N}', String(count));
-}
-
 function buildRewritePrompt(theme, article, idea, includeLink, count) {
-  const system = [
-    'Du bist Social Editor für X.',
-    'Antwort-Format: JSON mit Feld "drafts". Kein zusätzlicher Text.',
-  ].join(' ');
+  const system = loadMasterPromptFromFile();
 
   const linkLine = includeLink && article.link ? `Link: ${article.link}` : '';
-  const sourceLine = article.source ? `Quelle: ${article.source}` : '';
+  const sourceLine = article.source ? `Source: ${article.source}` : '';
   const user = [
-    renderMasterPrompt(count),
-    `Thema: ${theme.label}`,
-    `These: ${idea}`,
-    `Titel: ${article.title}`,
-    `Inhalt: ${article.content}`,
+    `Topic: ${theme.label}`,
+    `Thesis: ${idea}`,
+    `Title: ${article.title}`,
+    `Content: ${article.content}`,
     sourceLine,
     linkLine,
-    'Gib das Ergebnis als JSON zurück: {"drafts":[{"text":"...","link":"..."}]}',
+    `Generate ${count} drafts.`,
+    'Return JSON only: {"drafts":[{"text":"...","link":"..."}]}',
   ]
     .filter(Boolean)
     .join('\n');
@@ -238,6 +198,11 @@ function validateDraftText(text) {
   if (!text || !/[.!?][\"'”’)]?$/.test(text)) {
     return false;
   }
+  const lower = text.toLowerCase();
+  const germanSignals = [' der ', ' die ', ' das ', ' und ', ' ist '];
+  if (/[äöüß]/i.test(text) || germanSignals.some((token) => lower.includes(token))) {
+    return false;
+  }
   if (text.length < 120 || text.length > 200) {
     return false;
   }
@@ -253,29 +218,56 @@ function validateDraftText(text) {
 
 async function runRewrite(theme, article, idea, includeLink, count) {
   const prompt = buildRewritePrompt(theme, article, idea, includeLink, count);
-  const data = await runOpenAiJson(prompt);
-  const drafts = Array.isArray(data?.drafts) ? data.drafts : [];
-  if (!drafts.length || drafts.length !== count) {
-    throw new Error('Post text was incomplete');
+  const initial = await runOpenAiJson(prompt);
+  const validated = validateDraftBatch(initial, includeLink, count);
+  if (validated.ok) {
+    return validated.items;
   }
-
-  return drafts.map((draft) => {
-    const text = String(draft?.text || '').trim();
-    const link = String(draft?.link || '').trim();
-    if (!validateDraftText(text)) {
-      throw new Error('Post text was incomplete');
-    }
-    if (includeLink) {
-      if (!link.startsWith('http') || /\s/.test(link)) {
-        throw new Error('Post text was incomplete');
-      }
-    }
-    return { text, link };
-  });
+  console.error('Draft validation failed, retrying once with the same prompt.');
+  const retry = await runOpenAiJson(prompt);
+  const retryValidated = validateDraftBatch(retry, includeLink, count);
+  if (!retryValidated.ok) {
+    throw new Error(retryValidated.error || 'Post text was incomplete');
+  }
+  return retryValidated.items;
 }
 
 function enforceNoDashes(text) {
   return text.replace(/\s[–—]\s/g, '. ').replace(/\s-\s/g, '. ');
+}
+
+function validateDraftBatch(data, includeLink, count) {
+  const drafts = Array.isArray(data?.drafts) ? data.drafts : [];
+  if (!drafts.length || drafts.length !== count) {
+    return { ok: false, error: 'Post text was incomplete' };
+  }
+  const items = drafts.map((draft) => {
+    const text = String(draft?.text || '').trim();
+    const link = String(draft?.link || '').trim();
+    if (!validateDraftText(text)) {
+      return null;
+    }
+    if (includeLink) {
+      if (!link.startsWith('http') || /\s/.test(link)) {
+        return null;
+      }
+    }
+    return { text, link };
+  });
+  if (items.some((item) => !item)) {
+    return { ok: false, error: 'Post text was incomplete' };
+  }
+  if (count > 1) {
+    const statementCount = items.filter((item) => !endsWithQuestion(item.text)).length;
+    if (statementCount < Math.ceil(count / 2)) {
+      return { ok: false, error: 'Post text was incomplete' };
+    }
+  }
+  return { ok: true, items };
+}
+
+function endsWithQuestion(text) {
+  return String(text || '').trim().endsWith('?');
 }
 
 async function generateDraftFromArticle(themeId, sourceType, article) {
