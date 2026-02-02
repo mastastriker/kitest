@@ -5,9 +5,11 @@ const form = document.getElementById('generator-form');
 const themeSelect = document.getElementById('generator-theme');
 const manualPicker = document.getElementById('manual-picker');
 const rssSummary = document.getElementById('rss-summary');
+const modeSection = document.getElementById('mode-section');
 const statusBadge = document.getElementById('generator-status');
 const themeWarning = document.getElementById('theme-warning');
 const countButtons = Array.from(document.querySelectorAll('.count-button'));
+const sourceInputs = Array.from(document.querySelectorAll('input[name="generator-source"]'));
 const submitButton = form.querySelector('button[type="submit"]');
 const trendListGrok = document.getElementById('trend-list-grok');
 const trendListOpenAI = document.getElementById('trend-list-openai');
@@ -210,6 +212,8 @@ const renderManualPicker = () => {
 };
 
 const getMode = () => document.querySelector('input[name="generator-mode"]:checked')?.value;
+const getSource = () =>
+  document.querySelector('input[name="generator-source"]:checked')?.value || 'trend';
 
 const buildManualArticle = () => {
   const storedTopics = readStored(TOPIC_STORAGE_KEY);
@@ -232,9 +236,28 @@ const setModeVisibility = () => {
   rssSummary.classList.toggle('is-hidden', mode !== 'auto');
 };
 
+const setSourceVisibility = async () => {
+  const source = getSource();
+  const isRss = source === 'rss';
+  if (modeSection) {
+    modeSection.classList.toggle('is-hidden', !isRss);
+  }
+  if (!isRss) {
+    manualPicker.classList.add('is-hidden');
+    rssSummary.classList.add('is-hidden');
+    return;
+  }
+  setModeVisibility();
+  renderManualPicker();
+  await loadRssCandidates();
+};
+
 form.addEventListener('change', (event) => {
   if (event.target.name === 'generator-mode') {
     setModeVisibility();
+  }
+  if (event.target.name === 'generator-source') {
+    setSourceVisibility();
   }
 });
 
@@ -260,23 +283,34 @@ form.addEventListener('submit', async (event) => {
   }
   setStatus('Generiere ...');
   const mode = getMode();
+  const source = getSource();
   const theme = themeSelect.value;
   const count = selectedCount;
 
-  const payload = { theme, mode, count };
-  if (mode === 'manual') {
-    const article = buildManualArticle();
-    if (!article || !article.link) {
-      setStatus('Bitte einen gültigen RSS-Artikel auswählen.', 'danger');
-      isGenerating = false;
-      if (submitButton) {
-        submitButton.disabled = false;
+  const payload = { theme, mode, count, source };
+  if (source === 'rss') {
+    if (mode === 'manual') {
+      const article = buildManualArticle();
+      if (!article || !article.link) {
+        setStatus('Bitte einen gültigen RSS-Artikel auswählen.', 'danger');
+        isGenerating = false;
+        if (submitButton) {
+          submitButton.disabled = false;
+        }
+        return;
       }
-      return;
+      payload.article = article;
+    } else {
+      if (!cachedCandidates.length) {
+        setStatus('Keine RSS-Kandidaten verfügbar.', 'danger');
+        isGenerating = false;
+        if (submitButton) {
+          submitButton.disabled = false;
+        }
+        return;
+      }
+      payload.candidates = cachedCandidates;
     }
-    payload.article = article;
-  } else {
-    payload.candidates = cachedCandidates;
   }
 
   try {
@@ -337,10 +371,8 @@ trendRefreshButton?.addEventListener('click', async () => {
 const init = async () => {
   await fetchThemes();
   await fetchThemeRegistry();
-  renderManualPicker();
-  await loadRssCandidates();
   await fetchCurrentTrends();
-  setModeVisibility();
+  await setSourceVisibility();
   setSelectedCount(selectedCount);
 };
 

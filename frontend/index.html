@@ -28,7 +28,7 @@
       </nav>
       <header>
         <h1>Post Generator</h1>
-        <p class="lede">Erzeuge neue X-Post-Entwürfe aus RSS-Quellen oder manuell ausgewählten News.</p>
+        <p class="lede">Erzeuge neue X-Post-Entwürfe aus Trends oder RSS-News.</p>
       </header>
 
       <section class="panel">
@@ -43,18 +43,33 @@
           </label>
           <p id="theme-warning" class="muted small is-hidden" role="status" aria-live="polite"></p>
           <label>
-            Modus
-            <div class="inline-actions">
+            Quelle
+            <div class="inline-actions" role="group" aria-label="Quelle auswählen">
               <label class="inline-toggle">
-                <input type="radio" name="generator-mode" value="auto" checked />
-                Automatisch (RSS priorisiert)
+                <input type="radio" name="generator-source" value="trend" checked />
+                Trend-basiert
               </label>
               <label class="inline-toggle">
-                <input type="radio" name="generator-mode" value="manual" />
-                Manuell (RSS-Artikel wählen)
+                <input type="radio" name="generator-source" value="rss" />
+                RSS-basiert
               </label>
             </div>
           </label>
+          <div id="mode-section">
+            <label>
+              Modus
+              <div class="inline-actions">
+                <label class="inline-toggle">
+                  <input type="radio" name="generator-mode" value="auto" checked />
+                  Automatisch (RSS priorisiert)
+                </label>
+                <label class="inline-toggle">
+                  <input type="radio" name="generator-mode" value="manual" />
+                  Manuell (RSS-Artikel wählen)
+                </label>
+              </div>
+            </label>
+          </div>
           <div class="stack">
             <span>Anzahl Entwürfe</span>
             <div class="inline-actions" role="group" aria-label="Anzahl Entwürfe auswählen">
@@ -102,8 +117,8 @@
           <h2>Hinweise</h2>
         </div>
         <ul class="note-list">
-          <li>Automatisch nutzt aktive RSS-Feeds aus dem News-Bereich.</li>
-          <li>Manuell erlaubt die Auswahl gespeicherter RSS-News.</li>
+          <li>Quelle Trend nutzt aktuelle X-Trends.</li>
+          <li>Quelle RSS nutzt aktive RSS-Feeds oder gespeicherte RSS-News.</li>
           <li>Jeder Draft benötigt eine manuelle Freigabe.</li>
         </ul>
       </section>

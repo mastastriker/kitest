@@ -59,6 +59,12 @@ function countDraftsLast24h(themeId) {
   }).length;
 }
 
+function hasDraftForSource(sourceRef) {
+  if (!sourceRef) return false;
+  const allDrafts = getPostDrafts();
+  return allDrafts.some((draft) => draft.source_ref === sourceRef);
+}
+
 
 function canGenerateDraft(themeId, requestedCount = 1) {
   if (countGeneratedForTheme(themeId) + requestedCount > GENERATED_LIMIT) {
@@ -122,10 +128,9 @@ function buildIdeaPrompt(theme, analysis) {
   return { system, user };
 }
 
-function buildRewritePrompt(theme, article, idea, includeLink, count) {
+function buildRewritePrompt(theme, article, idea, count) {
   const system = loadMasterPromptFromFile();
 
-  const linkLine = includeLink && article.link ? `Link: ${article.link}` : '';
   const sourceLine = article.source ? `Source: ${article.source}` : '';
   const user = [
     `Topic: ${theme.label}`,
@@ -133,8 +138,8 @@ function buildRewritePrompt(theme, article, idea, includeLink, count) {
     `Title: ${article.title}`,
     `Content: ${article.content}`,
     sourceLine,
-    linkLine,
     `Generate ${count} drafts.`,
+    'Do not include URLs in the draft text.',
     'Return JSON only: {"drafts":[{"text":"...","link":"..."}]}',
   ]
     .filter(Boolean)
@@ -198,6 +203,9 @@ function validateDraftText(text) {
   if (/[äöüß]/i.test(text) || germanSignals.some((token) => lower.includes(token))) {
     return false;
   }
+  if (/https?:\/\//i.test(text)) {
+    return false;
+  }
   if (text.length < 120 || text.length > 200) {
     return false;
   }
@@ -208,8 +216,8 @@ function validateDraftText(text) {
   return true;
 }
 
-async function runRewrite(theme, article, idea, includeLink, count) {
-  const prompt = buildRewritePrompt(theme, article, idea, includeLink, count);
+async function runRewrite(theme, article, idea, count) {
+  const prompt = buildRewritePrompt(theme, article, idea, count);
   const initial = await runOpenAiJson(prompt);
   const validated = validateDraftBatch(initial, count);
   if (validated.ok) {
@@ -269,17 +277,13 @@ async function generateDraftFromArticle(themeId, sourceType, article) {
   if (!normalized.title || !normalized.content) {
     throw new Error('Article title and content are required');
   }
-  if (sourceType !== 'trend') {
-    throw new Error('RSS-based draft generation is disabled in v2.2');
-  }
-
   const analysis = await runAnalysis(theme, normalized);
   if (analysis.total_score < 9) {
     return { skipped: true, analysis };
   }
 
   const idea = await runIdea(theme, analysis);
-  const drafts = await runRewrite(theme, normalized, idea, false, 1);
+  const drafts = await runRewrite(theme, normalized, idea, 1);
   let text = drafts[0].text;
   text = enforceNoDashes(text);
 
@@ -301,17 +305,13 @@ async function generateDraftsFromArticle(themeId, sourceType, article, count) {
   if (!normalized.title || !normalized.content) {
     throw new Error('Article title and content are required');
   }
-  if (sourceType !== 'trend') {
-    throw new Error('RSS-based draft generation is disabled in v2.2');
-  }
-
   const analysis = await runAnalysis(theme, normalized);
   if (analysis.total_score < 9) {
     return { skipped: true, analysis, drafts: [] };
   }
 
   const idea = await runIdea(theme, analysis);
-  const generatedDrafts = await runRewrite(theme, normalized, idea, false, count);
+  const generatedDrafts = await runRewrite(theme, normalized, idea, count);
   const drafts = generatedDrafts.map((draft) => {
     let text = draft.text;
     text = enforceNoDashes(text);
@@ -328,6 +328,42 @@ async function generateDraftsFromArticle(themeId, sourceType, article, count) {
   };
 }
 
+function pickEligibleArticles(articles) {
+  return articles
+    .map(normalizeArticle)
+    .filter((article) => article.title && article.content && article.link);
+}
+
+async function generateDraftFromCandidates(themeId, candidates, count) {
+  const articles = pickEligibleArticles(candidates || []);
+  const requestedCount = Math.max(1, Number(count) || 1);
+  const drafts = [];
+  for (const article of articles) {
+    if (drafts.length >= requestedCount) break;
+    if (hasDraftForSource(article.link)) {
+      continue;
+    }
+    try {
+      const generated = await generateDraftFromArticle(themeId, 'rss', article);
+      if (generated.skipped) {
+        continue;
+      }
+      drafts.push(
+        addPostDraft({
+          theme: themeId,
+          content: generated.content,
+          status: 'generated',
+          source_type: 'rss',
+          source_ref: article.link,
+        })
+      );
+    } catch (error) {
+      continue;
+    }
+  }
+  return drafts.length ? drafts : null;
+}
+
 async function generateDraftForTheme(themeId, payload, count) {
   const requestedCount = Math.max(1, Number(count) || 1);
   const limits = canGenerateDraft(themeId, requestedCount);
@@ -339,7 +375,7 @@ async function generateDraftForTheme(themeId, payload, count) {
     throw new Error(message);
   }
 
-  const sourceType = payload.source_type || 'rss';
+  const sourceType = payload.source_type || 'trend';
 
   if (sourceType === 'trend') {
     const trends = await generateTrendsForTopic(themeId, 'current', Math.max(requestedCount, 5));
@@ -388,16 +424,14 @@ async function generateDraftForTheme(themeId, payload, count) {
     }
     return drafts;
   }
-  throw new Error('RSS-based draft generation is disabled in v2.2');
+  throw new Error('source_type is invalid');
 }
 
 async function generateDraft(themeId, payload) {
   const requestedCount = payload.count || 3;
-  if (payload.mode !== 'trend') {
-    throw new Error('RSS-based draft generation is disabled in v2.2');
-  }
-  if (payload.source_type === 'rss' || payload.article) {
-    throw new Error('RSS-based draft generation is disabled in v2.2');
+  const source = payload.source || 'trend';
+  if (!['trend', 'rss'].includes(source)) {
+    throw new Error('source is invalid');
   }
   const desiredCount = requestedCount;
   const limits = canGenerateDraft(themeId, desiredCount);
@@ -408,13 +442,62 @@ async function generateDraft(themeId, payload) {
         : 'Maximal 5 Entwürfe pro Thema in 24 Stunden erreicht.';
     throw new Error(message);
   }
-  return generateDraftForTheme(
-    themeId,
-    {
-      source_type: 'trend',
-    },
-    desiredCount
-  );
+  if (source === 'trend') {
+    return generateDraftForTheme(
+      themeId,
+      {
+        source_type: 'trend',
+      },
+      desiredCount
+    );
+  }
+
+  const hasCandidates = Array.isArray(payload.candidates) && payload.candidates.length;
+  const hasArticle = Boolean(payload.article);
+  if (!hasCandidates && !hasArticle) {
+    throw new Error('RSS selected but no RSS data provided');
+  }
+
+  if (hasArticle) {
+    const normalized = normalizeArticle(payload.article);
+    if (!normalized.link) {
+      throw new Error('RSS selected but no RSS data provided');
+    }
+    if (hasDraftForSource(normalized.link)) {
+      throw new Error('Für diesen Artikel existiert bereits ein Draft.');
+    }
+    if (desiredCount > 1) {
+      const generated = await generateDraftsFromArticle(themeId, 'rss', normalized, desiredCount);
+      return generated.drafts.map((draft) =>
+        addPostDraft({
+          theme: themeId,
+          content: draft.content,
+          status: 'generated',
+          source_type: 'rss',
+          source_ref: normalized.link,
+        })
+      );
+    }
+    const generated = await generateDraftFromArticle(themeId, 'rss', normalized);
+    if (generated.skipped) {
+      throw new Error('Artikel ist für einen Draft nicht stark genug.');
+    }
+    return [
+      addPostDraft({
+        theme: themeId,
+        content: generated.content,
+        status: 'generated',
+        source_type: 'rss',
+        source_ref: normalized.link,
+      }),
+    ];
+  }
+
+  const drafts = await generateDraftFromCandidates(themeId, payload.candidates || [], desiredCount);
+  if (drafts) {
+    return drafts;
+  }
+  throw new Error('RSS selected but no RSS data provided');
 }
 
 function approveDraft(draftId) {
