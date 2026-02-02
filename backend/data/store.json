@@ -34,6 +34,127 @@
     }
   ],
   "posts": [],
-  "drafts": [],
-  "themes": []
+  "drafts": [
+    {
+      "id": "draft_ml5qtjbk_3rby",
+      "theme": "crypto",
+      "content": "The buzz around Solana ETFs is growing. This could be the ultimate test for crypto regulation. Are we ready to avoid the same mistakes we made with Bitcoin and Ethereum?",
+      "status": "generated",
+      "source_type": "trend",
+      "source_ref": null,
+      "trend_title": "Discussions on potential Solana ETF approvals gaining traction amid regulatory speculation.",
+      "trend_provider": "grok",
+      "created_at": "2026-02-02T22:30:18.128Z",
+      "approved_at": null
+    },
+    {
+      "id": "draft_ml5quitb_jz7w",
+      "theme": "crypto",
+      "content": "Base is becoming a playground for memecoins while serious projects fade into the background. Community engagement is prioritized over actual value. This trend isn’t sustainable.",
+      "status": "generated",
+      "source_type": "trend",
+      "source_ref": null,
+      "trend_title": "Buzz around memecoin launches on Base network, focusing on viral community hype.",
+      "trend_provider": "grok",
+      "created_at": "2026-02-02T22:31:04.127Z",
+      "approved_at": null
+    },
+    {
+      "id": "draft_ml5qvn24_tvom",
+      "theme": "crypto",
+      "content": "Family offices are clearly not buying into the crypto hype. 89% aren't holding any digital assets. This disconnect speaks volumes about the underlying weaknesses in the market.",
+      "status": "generated",
+      "source_type": "rss",
+      "source_ref": "https://www.coindesk.com/business/2026/02/02/jpmorgan-private-bank-despite-geopolitical-fears-family-offices-mostly-avoid-crypto",
+      "trend_title": null,
+      "trend_provider": null,
+      "created_at": "2026-02-02T22:31:56.284Z",
+      "approved_at": null
+    },
+    {
+      "id": "draft_ml5r15yu_hoje",
+      "theme": "crypto",
+      "content": "Test The hype around Solana ETF approvals is blinding people to the underlying market risks. Regulatory interest is growing, but so is the volatility. How long before reality hits?",
+      "status": "generated",
+      "source_type": "trend",
+      "source_ref": null,
+      "trend_title": "Discussions on potential Solana ETF approvals gaining traction amid regulatory speculation.",
+      "trend_provider": "grok",
+      "created_at": "2026-02-02T22:36:14.070Z",
+      "approved_at": null
+    },
+    {
+      "id": "draft_ml5r1hzf_1wnu",
+      "theme": "crypto",
+      "content": "Test Elon Musk's xAI and SpaceX merger is a high-stakes gamble. A $1.25 trillion IPO valuation raises eyebrows. This isn't just innovation; it's a potential monopoly on critical technology.",
+      "status": "generated",
+      "source_type": "rss",
+      "source_ref": "https://www.coindesk.com/business/2026/02/02/elon-musk-s-spacex-acquires-elon-musk-s-xai",
+      "trend_title": null,
+      "trend_provider": null,
+      "created_at": "2026-02-02T22:36:29.643Z",
+      "approved_at": null
+    }
+  ],
+  "themes": [],
+  "settings": {
+    "trendProvider": "grok"
+  },
+  "trends": [
+    {
+      "id": "trend_ml5r11iu_2rq0lg",
+      "title": "Discussions on potential Solana ETF approvals gaining traction amid regulatory speculation.",
+      "description": "Discussions on potential Solana ETF approvals gaining traction amid regulatory speculation.",
+      "provider": "grok",
+      "sources": [
+        "x"
+      ],
+      "created_at": "2026-02-02T22:36:08.310Z",
+      "label": "narrativ"
+    },
+    {
+      "id": "trend_ml5r11iu_d1scf7",
+      "title": "Buzz around Bitcoin's price volatility following recent market dips and rebounds.",
+      "description": "Buzz around Bitcoin's price volatility following recent market dips and rebounds.",
+      "provider": "grok",
+      "sources": [
+        "x"
+      ],
+      "created_at": "2026-02-02T22:36:08.310Z",
+      "label": "narrativ"
+    },
+    {
+      "id": "trend_ml5r11iu_hmo9yl",
+      "title": "Emerging talks on Ethereum's layer-2 scaling solutions and their adoption rates.",
+      "description": "Emerging talks on Ethereum's layer-2 scaling solutions and their adoption rates.",
+      "provider": "grok",
+      "sources": [
+        "x"
+      ],
+      "created_at": "2026-02-02T22:36:08.310Z",
+      "label": "narrativ"
+    },
+    {
+      "id": "trend_ml5r11iu_llry8p",
+      "title": "Debates over meme coin hype, particularly Dogecoin variants, in response to celebrity mentions.",
+      "description": "Debates over meme coin hype, particularly Dogecoin variants, in response to celebrity mentions.",
+      "provider": "grok",
+      "sources": [
+        "x"
+      ],
+      "created_at": "2026-02-02T22:36:08.310Z",
+      "label": "narrativ"
+    },
+    {
+      "id": "trend_ml5r11iu_p27kur",
+      "title": "Conversations about DeFi protocol upgrades and their impact on yield farming.",
+      "description": "Conversations about DeFi protocol upgrades and their impact on yield farming.",
+      "provider": "grok",
+      "sources": [
+        "x"
+      ],
+      "created_at": "2026-02-02T22:36:08.310Z",
+      "label": "sachlich"
+    }
+  ]
 }
