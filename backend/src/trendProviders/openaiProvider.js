@@ -1,22 +1,46 @@
 const OpenAI = require('openai');
-const { buildTrend, extractTrendLinesFromText, filterTrendsByRecency } = require('./utils');
+const {
+  buildTrend,
+  extractTrendLinesFromText,
+  filterTrendsByRecency,
+  enforceTrendPlausibility,
+} = require('./utils');
 
 const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
 function buildOpenAITrendPrompt(topicName, modeLabel, count) {
-  const system =
-    'You are a trend detection system observing discussions on X (Twitter). Focus ONLY on very recent activity.';
+  const system = [
+    'You are a trend detection system observing discussions on X (Twitter).',
+    'You must understand what is being discussed AND whether the direction',
+    'of claims is plausible given generally known current conditions.',
+  ].join('\n');
   const user = [
-    'List up to 10 crypto-related narratives that have emerged or significantly accelerated',
+    'List up to 10 crypto-related narratives that have emerged or accelerated',
     'within the LAST 24 HOURS on X.',
-    'Ignore topics that were already widely discussed before this time window.',
-    'Do not explain background or history.',
-    'Use plain text, one trend per line.',
     '',
-    'Rules:',
-    '- Do NOT ask for JSON',
-    '- Do NOT ask for analysis or opinions',
-    '- Do NOT include older context',
+    'IMPORTANT RULES:',
+    '- Describe WHAT is being discussed, not WHAT is claimed as fact.',
+    '- If discussions make strong claims (e.g. record highs, record lows,',
+    '  massive inflows, extreme drops) but such direction is uncertain',
+    '  or contradicted by commonly known current data,',
+    '  you MUST neutralize the wording.',
+    '- In such cases, describe the debate or contradiction instead of',
+    '  repeating the claim.',
+    '',
+    'Examples:',
+    '- Instead of "ETF inflows hitting record highs"',
+    '  write "Debate on X about Bitcoin ETF inflows despite weak flow data".',
+    '- Instead of "massive institutional buying"',
+    '  write "Conflicting claims about institutional activity".',
+    '',
+    'Do NOT:',
+    '- invent confirmations',
+    '- invent records',
+    '- exaggerate direction',
+    '- explain background',
+    '- output JSON',
+    '',
+    'Use plain text, one trend per line.',
   ].join('\n');
 
   return { system, user };
@@ -56,11 +80,12 @@ function createOpenAITrendProvider() {
         )
         .filter(Boolean);
       const filtered = filterTrendsByRecency(trends);
+      const plausible = enforceTrendPlausibility(filtered);
 
-      if (!filtered.length) {
+      if (!plausible.length) {
         throw new Error('OpenAI response did not include valid trends');
       }
-      return filtered.slice(0, count);
+      return plausible.slice(0, count);
     },
   };
 }

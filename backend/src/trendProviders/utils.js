@@ -46,6 +46,28 @@ const RECENCY_BLOCKLIST = [
   /\bin 20\d{2}\b/i,
 ];
 
+const ABSOLUTE_CLAIM_PATTERNS = [
+  /\brecord highs?\b/i,
+  /\brecord lows?\b/i,
+  /\bhighest ever\b/i,
+  /\blowest ever\b/i,
+];
+
+const QUALIFIER_PATTERNS = [
+  /\bdebate\b/i,
+  /\bdiscussion\b/i,
+  /\bclaims?\b/i,
+  /\bclaiming\b/i,
+  /\brumou?rs?\b/i,
+  /\bspeculation\b/i,
+  /\bunconfirmed\b/i,
+  /\bconflicting\b/i,
+  /\bmixed\b/i,
+  /\bcontradiction\b/i,
+  /\bquestion(?:ing)?\b/i,
+  /\bdoubt(?:s|ful)?\b/i,
+];
+
 function referencesOlderTimeframe(text) {
   const content = String(text || '');
   return RECENCY_BLOCKLIST.some((pattern) => pattern.test(content));
@@ -61,8 +83,62 @@ function filterTrendsByRecency(trends = []) {
   return filtered;
 }
 
+function hasAbsoluteClaim(text) {
+  return ABSOLUTE_CLAIM_PATTERNS.some((pattern) => pattern.test(String(text || '')));
+}
+
+function hasQualifier(text) {
+  return QUALIFIER_PATTERNS.some((pattern) => pattern.test(String(text || '')));
+}
+
+function downgradeAbsoluteClaim(line) {
+  const content = String(line || '').trim();
+  if (!content) {
+    return null;
+  }
+  if (!hasAbsoluteClaim(content) || hasQualifier(content)) {
+    return content;
+  }
+  return `Debate on X about claims of ${content}`;
+}
+
+function enforceTrendPlausibility(trends = []) {
+  const updated = [];
+  for (const trend of trends) {
+    if (!trend) {
+      continue;
+    }
+    const combined = `${trend.title || ''} ${trend.description || ''}`.trim();
+    if (!hasAbsoluteClaim(combined) || hasQualifier(combined)) {
+      updated.push(trend);
+      continue;
+    }
+    console.warn('Trend contains absolute claim without qualifiers; downgrading', {
+      title: trend.title,
+    });
+    const downgradedTitle = downgradeAbsoluteClaim(trend.title);
+    const downgradedDescription = downgradeAbsoluteClaim(trend.description);
+    if (!downgradedTitle || !downgradedDescription) {
+      console.warn('Discarding trend due to undowngradable absolute claim', {
+        title: trend.title,
+      });
+      continue;
+    }
+    updated.push({
+      ...trend,
+      title: downgradedTitle,
+      description: downgradedDescription,
+    });
+  }
+  if (trends.length && !updated.length) {
+    throw new Error('All trends were discarded due to implausible absolute claims');
+  }
+  return updated;
+}
+
 module.exports = {
   buildTrend,
   extractTrendLinesFromText,
   filterTrendsByRecency,
+  enforceTrendPlausibility,
 };
