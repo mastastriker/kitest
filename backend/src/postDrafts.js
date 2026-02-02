@@ -413,6 +413,8 @@ async function generateDraftForTheme(themeId, payload, count) {
             status: 'generated',
             source_type: 'trend',
             source_ref: null,
+            trend_title: trend.title,
+            trend_provider: trend.provider || null,
           })
         );
       } catch (error) {

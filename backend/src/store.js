@@ -328,6 +328,8 @@ function addPostDraft(draft) {
     status: draft.status || 'generated',
     source_type: draft.source_type,
     source_ref: draft.source_ref || null,
+    trend_title: draft.trend_title || null,
+    trend_provider: draft.trend_provider || null,
     created_at: now,
     approved_at: draft.approved_at || null,
   };
