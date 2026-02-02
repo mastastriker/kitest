@@ -1,5 +1,5 @@
 const OpenAI = require('openai');
-const { getDefaultPrompts, renderUserPrompt } = require('./prompts');
+const { getDefaultPrompts, getMasterPrompt, renderUserPrompt } = require('./prompts');
 const { getPostPropertyMap } = require('./postProperties');
 
 const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
@@ -78,14 +78,15 @@ async function generatePostFromPrompt(system, user) {
   if (!client) {
     throw new Error('OpenAI client is not configured');
   }
-  if (!system || !user) {
-    throw new Error('Prompt system and user are required');
+  if (!user) {
+    throw new Error('Prompt user is required');
   }
+  const masterPrompt = getMasterPrompt();
 
   const response = await client.chat.completions.create({
     model,
     messages: [
-      { role: 'system', content: system },
+      { role: 'system', content: masterPrompt },
       { role: 'user', content: user },
     ],
     temperature: 0.7,
@@ -113,7 +114,7 @@ function appendPropertyInstructions(userPrompt, selectedProperties) {
 
 function buildPostPromptForTopic(topic, count = 3) {
   const defaults = getDefaultPrompts();
-  const system = topic.prompts?.system || defaults.system;
+  const system = getMasterPrompt();
   const baseUser = renderUserPrompt(topic.prompts?.user || defaults.user, topic.name, count);
   const selectedProperties = selectPostProperties(topic);
   const user = appendPropertyInstructions(baseUser, selectedProperties);
@@ -122,25 +123,21 @@ function buildPostPromptForTopic(topic, count = 3) {
 
 function buildTrendPostPrompt(topic, trend) {
   const defaults = getDefaultPrompts();
-  const baseSystem = topic.prompts?.system || defaults.system;
-  const system = [
-    baseSystem,
-    'Antwort-Format: JSON mit Feldern "text" und "link", keine weiteren Felder.',
-  ].join(' ');
+  const system = getMasterPrompt();
   const selectedProperties = selectPostProperties(topic);
   const propertyHints = buildPropertyHints(selectedProperties);
   const user = [
-    `Thema: ${topic.name}`,
-    `Trend-Idee: ${trend}`,
-    'Erstelle genau einen prägnanten X-Post auf Deutsch.',
-    'Der Post soll eigenständig formuliert sein und nicht nur die Trend-Idee zitieren.',
-    'Text zuerst vollständig formulieren, Link separat liefern.',
-    'Der Text darf keine URLs enthalten.',
-    'Der Link darf nur die URL enthalten und muss vollständig sein.',
-    'Kürze bei Bedarf den Inhalt, aber niemals Sätze oder Links abschneiden.',
-    'Keine harten Zeichenlimits, aber halte dich an die X-Grenze (280 Zeichen).',
-    'Keine Emojis, keine Hashtags.',
-    'Antwort im JSON-Format: {"text": "...", "link": "https://..." }',
+    `Topic: ${topic.name}`,
+    `Trend idea: ${trend}`,
+    'Create exactly one concise X post in English.',
+    'The post must stand on its own and not quote the trend idea.',
+    'Write the full text first, then provide the link separately.',
+    'The text must not contain URLs.',
+    'The link must be only the URL and must be complete.',
+    'Trim if needed, but never cut off sentences or links.',
+    'No hard character limit, but keep within X limits (280 characters).',
+    'No emojis. No hashtags.',
+    'Return JSON only: {"text": "...", "link": "https://..." }',
     propertyHints,
   ]
     .filter(Boolean)
