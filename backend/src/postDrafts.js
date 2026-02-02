@@ -59,11 +59,6 @@ function countDraftsLast24h(themeId) {
   }).length;
 }
 
-function hasDraftForSource(sourceRef) {
-  if (!sourceRef) return false;
-  const allDrafts = getPostDrafts();
-  return allDrafts.some((draft) => draft.source_ref === sourceRef);
-}
 
 function canGenerateDraft(themeId, requestedCount = 1) {
   if (countGeneratedForTheme(themeId) + requestedCount > GENERATED_LIMIT) {
@@ -210,22 +205,19 @@ function validateDraftText(text) {
   if (sentences > 4) {
     return false;
   }
-  if (/https?:\/\//i.test(text)) {
-    return false;
-  }
   return true;
 }
 
 async function runRewrite(theme, article, idea, includeLink, count) {
   const prompt = buildRewritePrompt(theme, article, idea, includeLink, count);
   const initial = await runOpenAiJson(prompt);
-  const validated = validateDraftBatch(initial, includeLink, count);
+  const validated = validateDraftBatch(initial, count);
   if (validated.ok) {
     return validated.items;
   }
   console.error('Draft validation failed, retrying once with the same prompt.');
   const retry = await runOpenAiJson(prompt);
-  const retryValidated = validateDraftBatch(retry, includeLink, count);
+  const retryValidated = validateDraftBatch(retry, count);
   if (!retryValidated.ok) {
     throw new Error(retryValidated.error || 'Post text was incomplete');
   }
@@ -236,23 +228,20 @@ function enforceNoDashes(text) {
   return text.replace(/\s[–—]\s/g, '. ').replace(/\s-\s/g, '. ');
 }
 
-function validateDraftBatch(data, includeLink, count) {
+function validateDraftBatch(data, count) {
   const drafts = Array.isArray(data?.drafts) ? data.drafts : [];
   if (!drafts.length || drafts.length !== count) {
     return { ok: false, error: 'Post text was incomplete' };
   }
   const items = drafts.map((draft) => {
     const text = String(draft?.text || '').trim();
-    const link = String(draft?.link || '').trim();
     if (!validateDraftText(text)) {
       return null;
     }
-    if (includeLink) {
-      if (!link.startsWith('http') || /\s/.test(link)) {
-        return null;
-      }
+    if (/https?:\/\//i.test(text)) {
+      return null;
     }
-    return { text, link };
+    return { text };
   });
   if (items.some((item) => !item)) {
     return { ok: false, error: 'Post text was incomplete' };
@@ -280,6 +269,9 @@ async function generateDraftFromArticle(themeId, sourceType, article) {
   if (!normalized.title || !normalized.content) {
     throw new Error('Article title and content are required');
   }
+  if (sourceType !== 'trend') {
+    throw new Error('RSS-based draft generation is disabled in v2.2');
+  }
 
   const analysis = await runAnalysis(theme, normalized);
   if (analysis.total_score < 9) {
@@ -287,16 +279,9 @@ async function generateDraftFromArticle(themeId, sourceType, article) {
   }
 
   const idea = await runIdea(theme, analysis);
-  const includeLink = sourceType === 'rss' || sourceType === 'manual';
-  const drafts = await runRewrite(theme, normalized, idea, includeLink, 1);
+  const drafts = await runRewrite(theme, normalized, idea, false, 1);
   let text = drafts[0].text;
-  if (drafts[0].link) {
-    text = `${text}\n\n${drafts[0].link}`;
-  }
   text = enforceNoDashes(text);
-  if (includeLink && normalized.link && !text.includes(normalized.link)) {
-    throw new Error('Post text was incomplete');
-  }
 
   return {
     skipped: false,
@@ -316,6 +301,9 @@ async function generateDraftsFromArticle(themeId, sourceType, article, count) {
   if (!normalized.title || !normalized.content) {
     throw new Error('Article title and content are required');
   }
+  if (sourceType !== 'trend') {
+    throw new Error('RSS-based draft generation is disabled in v2.2');
+  }
 
   const analysis = await runAnalysis(theme, normalized);
   if (analysis.total_score < 9) {
@@ -323,17 +311,10 @@ async function generateDraftsFromArticle(themeId, sourceType, article, count) {
   }
 
   const idea = await runIdea(theme, analysis);
-  const includeLink = sourceType === 'rss' || sourceType === 'manual';
-  const generatedDrafts = await runRewrite(theme, normalized, idea, includeLink, count);
+  const generatedDrafts = await runRewrite(theme, normalized, idea, false, count);
   const drafts = generatedDrafts.map((draft) => {
     let text = draft.text;
-    if (draft.link) {
-      text = `${text}\n\n${draft.link}`;
-    }
     text = enforceNoDashes(text);
-    if (includeLink && normalized.link && !text.includes(normalized.link)) {
-      throw new Error('Post text was incomplete');
-    }
     return {
       content: text,
       source_ref: normalized.link || null,
@@ -345,12 +326,6 @@ async function generateDraftsFromArticle(themeId, sourceType, article, count) {
     drafts,
     analysis,
   };
-}
-
-function pickEligibleArticles(articles) {
-  return articles
-    .map(normalizeArticle)
-    .filter((article) => article.title && article.content && article.link);
 }
 
 async function generateDraftForTheme(themeId, payload, count) {
@@ -413,76 +388,18 @@ async function generateDraftForTheme(themeId, payload, count) {
     }
     return drafts;
   }
-
-  const article = payload.article;
-  if (!article) {
-    throw new Error('Article data is required');
-  }
-  const normalized = normalizeArticle(article);
-  if (!normalized.link) {
-    throw new Error('Article link is required');
-  }
-  if (hasDraftForSource(normalized.link)) {
-    throw new Error('Für diesen Artikel existiert bereits ein Draft.');
-  }
-
-  const generated = await generateDraftFromArticle(themeId, sourceType, normalized);
-  if (generated.skipped) {
-    throw new Error('Artikel ist für einen Draft nicht stark genug.');
-  }
-  return [
-    addPostDraft({
-      theme: themeId,
-      content: generated.content,
-      status: 'generated',
-      source_type: sourceType,
-      source_ref: normalized.link,
-    }),
-  ];
-}
-
-async function generateDraftFromCandidates(themeId, candidates, count) {
-  const articles = pickEligibleArticles(candidates || []);
-  const requestedCount = Math.max(1, Number(count) || 1);
-  const drafts = [];
-  for (const article of articles) {
-    if (drafts.length >= requestedCount) break;
-    if (hasDraftForSource(article.link)) {
-      continue;
-    }
-    try {
-      const generated = await generateDraftFromArticle(themeId, 'rss', article);
-      if (generated.skipped) {
-        continue;
-      }
-      drafts.push(
-        addPostDraft({
-          theme: themeId,
-          content: generated.content,
-          status: 'generated',
-          source_type: 'rss',
-          source_ref: article.link,
-        })
-      );
-    } catch (error) {
-      continue;
-    }
-  }
-  return drafts.length ? drafts : null;
+  throw new Error('RSS-based draft generation is disabled in v2.2');
 }
 
 async function generateDraft(themeId, payload) {
   const requestedCount = payload.count || 3;
-  let desiredCount = requestedCount;
-  if (payload.mode === 'manual') {
-    desiredCount = 1;
-  } else if (Array.isArray(payload.candidates)) {
-    const availableCount = pickEligibleArticles(payload.candidates)
-      .filter((article) => !hasDraftForSource(article.link)).length;
-    if (availableCount > 0) {
-      desiredCount = Math.min(requestedCount, availableCount);
-    }
+  if (payload.mode !== 'trend') {
+    throw new Error('RSS-based draft generation is disabled in v2.2');
   }
+  if (payload.source_type === 'rss' || payload.article) {
+    throw new Error('RSS-based draft generation is disabled in v2.2');
+  }
+  const desiredCount = requestedCount;
   const limits = canGenerateDraft(themeId, desiredCount);
   if (!limits.ok) {
     const message =
@@ -491,22 +408,13 @@ async function generateDraft(themeId, payload) {
         : 'Maximal 5 Entwürfe pro Thema in 24 Stunden erreicht.';
     throw new Error(message);
   }
-
-  if (payload.mode === 'manual') {
-    return generateDraftForTheme(themeId, {
-      source_type: 'manual',
-      article: payload.article,
-    }, desiredCount);
-  }
-
-  const drafts = await generateDraftFromCandidates(themeId, payload.candidates || [], desiredCount);
-  if (drafts) {
-    return drafts;
-  }
-
-  return generateDraftForTheme(themeId, {
-    source_type: 'trend',
-  }, desiredCount);
+  return generateDraftForTheme(
+    themeId,
+    {
+      source_type: 'trend',
+    },
+    desiredCount
+  );
 }
 
 function approveDraft(draftId) {
