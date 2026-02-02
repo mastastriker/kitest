@@ -8,6 +8,8 @@ const ENCODING = 'utf-8';
 const DEFAULT_SETTINGS = {
   trendProvider: 'openai',
 };
+const TREND_TTL_HOURS = 72;
+const TREND_STALE_AFTER_HOURS = 24;
 
 function ensureStoreFile() {
   const dir = path.dirname(STORE_PATH);
@@ -80,7 +82,7 @@ function updateSettings(updates = {}) {
 
 function getTrends() {
   const store = readStore();
-  return store.trends || [];
+  return applyTrendTtl(store.trends || []);
 }
 
 function setTrends(trends = []) {
@@ -88,6 +90,29 @@ function setTrends(trends = []) {
   store.trends = Array.isArray(trends) ? trends : [];
   writeStore(store);
   return store.trends;
+}
+
+function applyTrendTtl(trends = []) {
+  const now = Date.now();
+  return trends
+    .map((trend) => {
+      const createdAt = Date.parse(trend?.created_at);
+      if (!Number.isFinite(createdAt)) {
+        return { ...trend, is_stale: false };
+      }
+      const ageHours = (now - createdAt) / (1000 * 60 * 60);
+      return {
+        ...trend,
+        age_hours: Math.max(0, Math.floor(ageHours)),
+        is_stale: ageHours >= TREND_STALE_AFTER_HOURS && ageHours <= TREND_TTL_HOURS,
+      };
+    })
+    .filter((trend) => {
+      if (!Number.isFinite(Date.parse(trend?.created_at))) {
+        return true;
+      }
+      return trend.age_hours <= TREND_TTL_HOURS;
+    });
 }
 
 function generateId(prefix = 'id') {

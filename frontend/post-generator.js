@@ -58,14 +58,15 @@ const renderTrendColumn = (container, trends = []) => {
   container.innerHTML = '';
   trends.forEach((trend) => {
     const item = document.createElement('div');
-    item.className = 'trend-item';
+    item.className = `trend-item${trend.is_stale ? ' is-stale' : ''}`;
     const title = document.createElement('span');
     title.className = 'trend-title';
     title.textContent = trend.title || 'Ohne Titel';
     const meta = document.createElement('span');
     meta.className = 'trend-meta muted small';
     const createdAt = trend.created_at ? new Date(trend.created_at).toLocaleString('de-DE') : '';
-    meta.textContent = createdAt;
+    const freshnessLabel = trend.is_stale ? 'Veraltet (24–72h)' : 'Frisch (<24h)';
+    meta.textContent = [createdAt, freshnessLabel].filter(Boolean).join(' · ');
     item.append(title, meta);
     container.appendChild(item);
   });
@@ -314,6 +315,7 @@ trendRefreshButton?.addEventListener('click', async () => {
   try {
     const res = await fetch('/api/trends/refresh', {
       method: 'POST',
+      cache: 'no-store',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ themeId }),
     });

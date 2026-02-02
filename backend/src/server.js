@@ -268,7 +268,7 @@ app.post('/api/trends/refresh', async (req, res) => {
       return res.status(400).json({ error: 'No providers are available' });
     }
     setTrends(merged);
-    return res.json({ trends: merged });
+    return res.json({ trends: getTrends() });
   } catch (err) {
     console.error('[trends-refresh] generation failed', {
       message: err.message,

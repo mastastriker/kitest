@@ -249,6 +249,11 @@ h3 {
   background: var(--surface-muted);
 }
 
+.trend-item.is-stale {
+  border-style: dashed;
+  opacity: 0.75;
+}
+
 .trend-title {
   font-weight: 600;
 }
