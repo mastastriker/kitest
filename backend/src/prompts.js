@@ -1,16 +1,33 @@
+const fs = require('fs');
+const path = require('path');
+
+const MASTER_PROMPT_PATH = path.join(
+  __dirname,
+  '..',
+  'prompts',
+  'x_master_prompt_v2_1_1.txt'
+);
+
 const defaultPrompts = {
-  system:
-    'Du schreibst prägnante, ansprechende X/Twitter-Posts auf Deutsch. Text zuerst vollständig formulieren, Link separat liefern. Der Text darf keine URLs enthalten. Der Link darf nur die URL enthalten und muss vollständig sein. Kürze bei Bedarf den Inhalt, aber niemals Sätze oder Links abschneiden. Keine harten Zeichenlimits, aber halte dich an die X-Grenze (280 Zeichen). Keine Emojis oder Hashtags außer wenn wirklich nötig. Liefere nur JSON: {"posts":[{"text":"...","link":"https://..."}]} ohne zusätzlichen Text.',
   user: [
-    'Thema: {{topic}}',
-    'Erzeuge {{count}} unterschiedliche Posts.',
-    'Jeder Post soll selbsterklärend und direkt postbar sein.',
-    'Text zuerst vollständig formulieren, Link separat liefern.',
-    'Der Text darf keine URLs enthalten.',
-    'Der Link darf nur die URL enthalten und muss vollständig sein.',
-    'Kürze bei Bedarf den Inhalt, aber niemals Sätze oder Links abschneiden.',
+    'Topic: {{topic}}',
+    'Generate {{count}} distinct posts.',
+    'Each post must be self-contained and ready to publish.',
+    'Write the full text first, then provide the link separately.',
+    'The text must not contain URLs.',
+    'The link must be only the URL and must be complete.',
+    'Trim if needed, but never cut off sentences or links.',
+    'Return JSON only: {"posts":[{"text":"...","link":"https://..."}]}',
   ].join('\n'),
 };
+
+function getMasterPrompt() {
+  const prompt = fs.readFileSync(MASTER_PROMPT_PATH, 'utf8');
+  if (!prompt) {
+    throw new Error('X master prompt is empty');
+  }
+  return prompt;
+}
 
 function getDefaultPrompts() {
   return { ...defaultPrompts };
@@ -25,5 +42,6 @@ function renderUserPrompt(template, topicName, count) {
 
 module.exports = {
   getDefaultPrompts,
+  getMasterPrompt,
   renderUserPrompt,
 };

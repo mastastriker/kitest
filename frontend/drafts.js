@@ -166,7 +166,11 @@ const renderDrafts = () => {
 
     const source = document.createElement('div');
     source.className = 'draft-source muted small';
-    if (draft.source_ref) {
+    if (draft.source_type === 'trend') {
+      const trendLabel = draft.trend_title ? ` · Trend: ${draft.trend_title}` : '';
+      const providerLabel = draft.trend_provider ? ` (${draft.trend_provider})` : '';
+      source.textContent = `Quelle: Trend${providerLabel}${trendLabel}`;
+    } else if (draft.source_ref) {
       source.innerHTML = `Quelle: <a href="${draft.source_ref}" target="_blank" rel="noreferrer">${draft.source_ref}</a>`;
     } else {
       source.textContent = `Quelle: ${draft.source_type}`;

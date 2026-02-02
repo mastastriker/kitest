@@ -357,11 +357,15 @@ app.get('/api/post-drafts', (req, res) => {
 });
 
 app.post('/api/post-drafts/generate', async (req, res) => {
-  const { theme, mode, article, candidates, count } = req.body || {};
+  const { theme, mode, article, candidates, count, source } = req.body || {};
   if (!theme || !getDraftTheme(theme)) {
     return res.status(400).json({ error: 'theme is invalid' });
   }
-  if (!['auto', 'manual'].includes(mode)) {
+  const resolvedSource = source || 'trend';
+  if (!['trend', 'rss'].includes(resolvedSource)) {
+    return res.status(400).json({ error: 'source is invalid' });
+  }
+  if (mode && !['auto', 'manual'].includes(mode)) {
     return res.status(400).json({ error: 'mode is invalid' });
   }
   const requestedCount = Number(req.body.count);
@@ -369,7 +373,13 @@ app.post('/api/post-drafts/generate', async (req, res) => {
     return res.status(400).json({ error: 'count is invalid' });
   }
   try {
-    const drafts = await generateDraft(theme, { mode, article, candidates, count: requestedCount });
+    const drafts = await generateDraft(theme, {
+      mode,
+      article,
+      candidates,
+      count: requestedCount,
+      source: resolvedSource,
+    });
     return res.json({ drafts });
   } catch (err) {
     return res.status(400).json({ error: err.message });

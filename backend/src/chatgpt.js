@@ -1,5 +1,5 @@
 const OpenAI = require('openai');
-const { getDefaultPrompts, renderUserPrompt } = require('./prompts');
+const { getDefaultPrompts, getMasterPrompt, renderUserPrompt } = require('./prompts');
 const { getPostPropertyMap } = require('./postProperties');
 
 const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
@@ -19,20 +19,9 @@ async function generatePostsForTopic(topic, count = 3) {
     throw new Error('OpenAI client is not configured');
   }
 
-  const { system, user } = buildPostPromptForTopic(topic, count);
+  const { user } = buildPostPromptForTopic(topic, count);
 
-  const response = await client.chat.completions.create({
-    model,
-    messages: [
-      { role: 'system', content: system },
-      { role: 'user', content: user },
-    ],
-    temperature: 0.7,
-    response_format: { type: 'json_object' },
-  });
-
-  const content = response.choices[0]?.message?.content;
-  const parsed = safeParsePosts(content);
+  const parsed = await generateXPostDrafts({ client, user, count });
   if (!parsed.length) {
     throw new Error('OpenAI response did not include valid posts');
   }
@@ -53,20 +42,9 @@ async function generatePostFromTrend(topic, trend) {
     throw new Error('OpenAI client is not configured');
   }
 
-  const { system, user } = buildTrendPostPrompt(topic, cleanedTrend);
+  const { user } = buildTrendPostPrompt(topic, cleanedTrend);
 
-  const response = await client.chat.completions.create({
-    model,
-    messages: [
-      { role: 'system', content: system },
-      { role: 'user', content: user },
-    ],
-    temperature: 0.7,
-    response_format: { type: 'json_object' },
-  });
-
-  const content = response.choices[0]?.message?.content;
-  const parsed = safeParsePost(content);
+  const parsed = await generateXPostDrafts({ client, user, count: 1 });
   if (!parsed) {
     throw new Error('OpenAI response did not include a valid post');
   }
@@ -78,26 +56,10 @@ async function generatePostFromPrompt(system, user) {
   if (!client) {
     throw new Error('OpenAI client is not configured');
   }
-  if (!system || !user) {
-    throw new Error('Prompt system and user are required');
+  if (!user) {
+    throw new Error('Prompt user is required');
   }
-
-  const response = await client.chat.completions.create({
-    model,
-    messages: [
-      { role: 'system', content: system },
-      { role: 'user', content: user },
-    ],
-    temperature: 0.7,
-    response_format: { type: 'json_object' },
-  });
-
-  const content = response.choices[0]?.message?.content;
-  const parsed = safeParsePost(content);
-  if (!parsed) {
-    throw new Error('OpenAI response did not include a valid post');
-  }
-  return parsed;
+  return generateXPostDrafts({ client, user, count: 1 });
 }
 
 function appendPropertyInstructions(userPrompt, selectedProperties) {
@@ -113,39 +75,123 @@ function appendPropertyInstructions(userPrompt, selectedProperties) {
 
 function buildPostPromptForTopic(topic, count = 3) {
   const defaults = getDefaultPrompts();
-  const system = topic.prompts?.system || defaults.system;
-  const baseUser = renderUserPrompt(topic.prompts?.user || defaults.user, topic.name, count);
+  const baseUser = renderUserPrompt(defaults.user, topic.name, count);
   const selectedProperties = selectPostProperties(topic);
   const user = appendPropertyInstructions(baseUser, selectedProperties);
-  return { system, user };
+  return { system: getMasterPrompt(), user };
 }
 
 function buildTrendPostPrompt(topic, trend) {
-  const defaults = getDefaultPrompts();
-  const baseSystem = topic.prompts?.system || defaults.system;
-  const system = [
-    baseSystem,
-    'Antwort-Format: JSON mit Feldern "text" und "link", keine weiteren Felder.',
-  ].join(' ');
+  const system = getMasterPrompt();
   const selectedProperties = selectPostProperties(topic);
   const propertyHints = buildPropertyHints(selectedProperties);
   const user = [
-    `Thema: ${topic.name}`,
-    `Trend-Idee: ${trend}`,
-    'Erstelle genau einen prägnanten X-Post auf Deutsch.',
-    'Der Post soll eigenständig formuliert sein und nicht nur die Trend-Idee zitieren.',
-    'Text zuerst vollständig formulieren, Link separat liefern.',
-    'Der Text darf keine URLs enthalten.',
-    'Der Link darf nur die URL enthalten und muss vollständig sein.',
-    'Kürze bei Bedarf den Inhalt, aber niemals Sätze oder Links abschneiden.',
-    'Keine harten Zeichenlimits, aber halte dich an die X-Grenze (280 Zeichen).',
-    'Keine Emojis, keine Hashtags.',
-    'Antwort im JSON-Format: {"text": "...", "link": "https://..." }',
+    `Topic: ${topic.name}`,
+    `Trend idea: ${trend}`,
+    'Create exactly one concise X post in English.',
+    'The post must stand on its own and not quote the trend idea.',
+    'Write the full text first, then provide the link separately.',
+    'The text must not contain URLs.',
+    'The link must be only the URL and must be complete.',
+    'Trim if needed, but never cut off sentences or links.',
+    'No hard character limit, but keep within X limits (280 characters).',
+    'No emojis. No hashtags.',
+    'Return JSON only: {"text": "...", "link": "https://..." }',
     propertyHints,
   ]
     .filter(Boolean)
     .join('\n');
   return { system, user };
+}
+
+async function generateXPostDrafts({ client, user, count }) {
+  if (!client) {
+    throw new Error('OpenAI client is not configured');
+  }
+  if (!user) {
+    throw new Error('Prompt user is required');
+  }
+  const system = getMasterPrompt();
+  const isBatch = Number(count) > 1;
+  if (isBatch) {
+    return generateBatchWithEnglishGuard(client, system, user);
+  }
+  return generateSingleWithEnglishGuard(client, system, user);
+}
+
+async function requestPostBatch(client, system, user) {
+  const response = await client.chat.completions.create({
+    model,
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user', content: user },
+    ],
+    temperature: 0.7,
+    response_format: { type: 'json_object' },
+  });
+  const content = response.choices[0]?.message?.content;
+  return safeParsePosts(content);
+}
+
+async function requestSinglePost(client, system, user) {
+  const response = await client.chat.completions.create({
+    model,
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user', content: user },
+    ],
+    temperature: 0.7,
+    response_format: { type: 'json_object' },
+  });
+  const content = response.choices[0]?.message?.content;
+  return safeParsePost(content);
+}
+
+function getPostText(post) {
+  if (typeof post !== 'string') {
+    return '';
+  }
+  return post.split('\n\n')[0]?.trim() || '';
+}
+
+function isEnglishPost(post) {
+  const text = getPostText(post);
+  if (!text) {
+    return false;
+  }
+  const lower = text.toLowerCase();
+  const germanSignals = [' der ', ' die ', ' das ', ' und ', ' nicht ', ' kein ', ' eine ', ' ist ', ' mit '];
+  const hasGermanChars = /[äöüß]/i.test(text);
+  if (hasGermanChars || germanSignals.some((token) => lower.includes(token))) {
+    return false;
+  }
+  return true;
+}
+
+async function generateBatchWithEnglishGuard(client, system, user) {
+  const initial = await requestPostBatch(client, system, user);
+  if (initial.every((post) => isEnglishPost(post))) {
+    return initial;
+  }
+  console.error('Non-English batch detected, retrying once with the same prompt.');
+  const retry = await requestPostBatch(client, system, user);
+  if (retry.every((post) => isEnglishPost(post))) {
+    return retry;
+  }
+  throw new Error('Generated posts were not in English after retry');
+}
+
+async function generateSingleWithEnglishGuard(client, system, user) {
+  const initial = await requestSinglePost(client, system, user);
+  if (isEnglishPost(initial)) {
+    return initial;
+  }
+  console.error('Non-English post detected, retrying once with the same prompt.');
+  const retry = await requestSinglePost(client, system, user);
+  if (isEnglishPost(retry)) {
+    return retry;
+  }
+  throw new Error('Generated post was not in English after retry');
 }
 
 function buildPropertyHints(selectedProperties) {
@@ -157,7 +203,7 @@ function buildPropertyHints(selectedProperties) {
   if (!lines.length) {
     return '';
   }
-  return `Zusätzliche Eigenschaften für diesen Post:\n${lines.join('\n')}`;
+  return `Additional properties for this post:\n${lines.join('\n')}`;
 }
 
 function selectPostProperties(topic, maxSelection = 3) {
