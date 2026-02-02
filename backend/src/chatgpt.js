@@ -21,18 +21,7 @@ async function generatePostsForTopic(topic, count = 3) {
 
   const { system, user } = buildPostPromptForTopic(topic, count);
 
-  const response = await client.chat.completions.create({
-    model,
-    messages: [
-      { role: 'system', content: system },
-      { role: 'user', content: user },
-    ],
-    temperature: 0.7,
-    response_format: { type: 'json_object' },
-  });
-
-  const content = response.choices[0]?.message?.content;
-  const parsed = safeParsePosts(content);
+  const parsed = await generatePostsWithGuards(client, system, user, count);
   if (!parsed.length) {
     throw new Error('OpenAI response did not include valid posts');
   }
@@ -55,18 +44,7 @@ async function generatePostFromTrend(topic, trend) {
 
   const { system, user } = buildTrendPostPrompt(topic, cleanedTrend);
 
-  const response = await client.chat.completions.create({
-    model,
-    messages: [
-      { role: 'system', content: system },
-      { role: 'user', content: user },
-    ],
-    temperature: 0.7,
-    response_format: { type: 'json_object' },
-  });
-
-  const content = response.choices[0]?.message?.content;
-  const parsed = safeParsePost(content);
+  const parsed = await generatePostWithGuards(client, system, user);
   if (!parsed) {
     throw new Error('OpenAI response did not include a valid post');
   }
@@ -83,18 +61,7 @@ async function generatePostFromPrompt(system, user) {
   }
   const masterPrompt = getMasterPrompt();
 
-  const response = await client.chat.completions.create({
-    model,
-    messages: [
-      { role: 'system', content: masterPrompt },
-      { role: 'user', content: user },
-    ],
-    temperature: 0.7,
-    response_format: { type: 'json_object' },
-  });
-
-  const content = response.choices[0]?.message?.content;
-  const parsed = safeParsePost(content);
+  const parsed = await generatePostWithGuards(client, masterPrompt, user);
   if (!parsed) {
     throw new Error('OpenAI response did not include a valid post');
   }
@@ -115,7 +82,7 @@ function appendPropertyInstructions(userPrompt, selectedProperties) {
 function buildPostPromptForTopic(topic, count = 3) {
   const defaults = getDefaultPrompts();
   const system = getMasterPrompt();
-  const baseUser = renderUserPrompt(topic.prompts?.user || defaults.user, topic.name, count);
+  const baseUser = renderUserPrompt(defaults.user, topic.name, count);
   const selectedProperties = selectPostProperties(topic);
   const user = appendPropertyInstructions(baseUser, selectedProperties);
   return { system, user };
@@ -143,6 +110,128 @@ function buildTrendPostPrompt(topic, trend) {
     .filter(Boolean)
     .join('\n');
   return { system, user };
+}
+
+async function generatePostsWithGuards(client, system, user, count) {
+  const initial = await requestPostBatch(client, system, user);
+  const needsEnglish = initial.some((post) => !isEnglishPost(post));
+  const questionCount = initial.filter((post) => endsWithQuestion(post)).length;
+  const allowedQuestions = Math.min(1, Math.floor((Number(count) || initial.length) / 3));
+  const needsStatementBalance =
+    questionCount > allowedQuestions || initial.length - questionCount < Math.ceil(initial.length / 2);
+  if (!needsEnglish && !needsStatementBalance) {
+    return initial;
+  }
+  const userWithGuard = [
+    user,
+    'Ensure all posts are in English only.',
+    'Statements are the default; do not end posts with questions.',
+  ].join('\n');
+  const retry = await requestPostBatch(client, system, userWithGuard);
+  return enforceStatementBalance(retry, count);
+}
+
+async function generatePostWithGuards(client, system, user) {
+  const initial = await requestSinglePost(client, system, user);
+  if (isEnglishPost(initial) && !endsWithQuestion(initial)) {
+    return initial;
+  }
+  const userWithGuard = [
+    user,
+    'Write in English only.',
+    'Ensure the post ends with a statement (no question mark).',
+  ].join('\n');
+  const retry = await requestSinglePost(client, system, userWithGuard);
+  return retry;
+}
+
+async function requestPostBatch(client, system, user) {
+  const response = await client.chat.completions.create({
+    model,
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user', content: user },
+    ],
+    temperature: 0.7,
+    response_format: { type: 'json_object' },
+  });
+  const content = response.choices[0]?.message?.content;
+  return safeParsePosts(content);
+}
+
+async function requestSinglePost(client, system, user) {
+  const response = await client.chat.completions.create({
+    model,
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user', content: user },
+    ],
+    temperature: 0.7,
+    response_format: { type: 'json_object' },
+  });
+  const content = response.choices[0]?.message?.content;
+  return safeParsePost(content);
+}
+
+function enforceStatementBalance(posts, count) {
+  const desiredCount = Math.min(Number(count) || posts.length, posts.length);
+  const entries = posts.slice(0, desiredCount);
+  const questionEntries = entries.filter((post) => endsWithQuestion(post));
+  const allowedQuestions = Math.min(1, Math.floor(desiredCount / 3));
+  if (questionEntries.length <= allowedQuestions) {
+    return entries;
+  }
+  const adjusted = [];
+  let usedQuestions = 0;
+  entries.forEach((post) => {
+    if (!endsWithQuestion(post)) {
+      adjusted.push(post);
+      return;
+    }
+    if (usedQuestions < allowedQuestions) {
+      usedQuestions += 1;
+      adjusted.push(post);
+      return;
+    }
+    adjusted.push(convertQuestionToStatement(post));
+  });
+  return adjusted.slice(0, desiredCount);
+}
+
+function getPostText(post) {
+  if (typeof post !== 'string') {
+    return '';
+  }
+  return post.split('\n\n')[0]?.trim() || '';
+}
+
+function endsWithQuestion(post) {
+  const text = getPostText(post);
+  return text.endsWith('?');
+}
+
+function isEnglishPost(post) {
+  const text = getPostText(post);
+  if (!text) {
+    return false;
+  }
+  const lower = text.toLowerCase();
+  const germanSignals = [' der ', ' die ', ' das ', ' und ', ' nicht ', ' kein ', ' eine ', ' ist ', ' mit '];
+  const hasGermanChars = /[äöüß]/i.test(text);
+  if (hasGermanChars || germanSignals.some((token) => lower.includes(token))) {
+    return false;
+  }
+  return true;
+}
+
+function convertQuestionToStatement(post) {
+  if (typeof post !== 'string') {
+    return post;
+  }
+  const [text, link] = post.split('\n\n');
+  const trimmedText = (text || '').trim().replace(/\?$/, '.');
+  const rebuilt = [trimmedText, link].filter(Boolean).join('\n\n');
+  return rebuilt;
 }
 
 function buildPropertyHints(selectedProperties) {
