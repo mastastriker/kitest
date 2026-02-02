@@ -76,6 +76,7 @@ const renderTrends = (trends = []) => {
   const byProvider = (provider) =>
     (Array.isArray(trends) ? trends : [])
       .filter((trend) => trend.provider === provider)
+      .filter((trend) => trend.label !== 'technisch')
       .sort((a, b) => Date.parse(b.created_at || 0) - Date.parse(a.created_at || 0))
       .slice(0, 10);
   renderTrendColumn(trendListGrok, byProvider('grok'));
