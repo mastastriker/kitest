@@ -36,63 +36,75 @@
   "posts": [],
   "drafts": [
     {
-      "id": "draft_ml5qtjbk_3rby",
+      "id": "draft_ml76ok1v_xrkt",
       "theme": "crypto",
-      "content": "The buzz around Solana ETFs is growing. This could be the ultimate test for crypto regulation. Are we ready to avoid the same mistakes we made with Bitcoin and Ethereum?",
-      "status": "generated",
-      "source_type": "trend",
-      "source_ref": null,
-      "trend_title": "Discussions on potential Solana ETF approvals gaining traction amid regulatory speculation.",
-      "trend_provider": "grok",
-      "created_at": "2026-02-02T22:30:18.128Z",
-      "approved_at": null
-    },
-    {
-      "id": "draft_ml5quitb_jz7w",
-      "theme": "crypto",
-      "content": "Base is becoming a playground for memecoins while serious projects fade into the background. Community engagement is prioritized over actual value. This trend isn’t sustainable.",
-      "status": "generated",
-      "source_type": "trend",
-      "source_ref": null,
-      "trend_title": "Buzz around memecoin launches on Base network, focusing on viral community hype.",
-      "trend_provider": "grok",
-      "created_at": "2026-02-02T22:31:04.127Z",
-      "approved_at": null
-    },
-    {
-      "id": "draft_ml5qvn24_tvom",
-      "theme": "crypto",
-      "content": "Family offices are clearly not buying into the crypto hype. 89% aren't holding any digital assets. This disconnect speaks volumes about the underlying weaknesses in the market.",
-      "status": "generated",
+      "content": "Digital wallets could centralize asset control while user trust and knowledge lag behind. Are we really progressing in crypto, or just creating new dependencies?",
+      "status": "discarded",
       "source_type": "rss",
-      "source_ref": "https://www.coindesk.com/business/2026/02/02/jpmorgan-private-bank-despite-geopolitical-fears-family-offices-mostly-avoid-crypto",
+      "source_ref": "https://www.coindesk.com/business/2026/02/03/franklin-templeton-exec-says-digital-wallets-will-hold-totality-of-people-s-assets",
       "trend_title": null,
       "trend_provider": null,
-      "created_at": "2026-02-02T22:31:56.284Z",
+      "created_at": "2026-02-03T22:42:05.827Z",
       "approved_at": null
     },
     {
-      "id": "draft_ml5r15yu_hoje",
+      "id": "draft_ml76owk6_5fnq",
       "theme": "crypto",
-      "content": "Test The hype around Solana ETF approvals is blinding people to the underlying market risks. Regulatory interest is growing, but so is the volatility. How long before reality hits?",
-      "status": "generated",
-      "source_type": "trend",
-      "source_ref": null,
-      "trend_title": "Discussions on potential Solana ETF approvals gaining traction amid regulatory speculation.",
-      "trend_provider": "grok",
-      "created_at": "2026-02-02T22:36:14.070Z",
-      "approved_at": null
-    },
-    {
-      "id": "draft_ml5r1hzf_1wnu",
-      "theme": "crypto",
-      "content": "Test Elon Musk's xAI and SpaceX merger is a high-stakes gamble. A $1.25 trillion IPO valuation raises eyebrows. This isn't just innovation; it's a potential monopoly on critical technology.",
-      "status": "generated",
+      "content": "Dogecoin's drop isn't just about memes. It highlights the fragility of the crypto market amid risk-off sentiment. Speculative digital currencies are facing a harsh reality check.",
+      "status": "discarded",
       "source_type": "rss",
-      "source_ref": "https://www.coindesk.com/business/2026/02/02/elon-musk-s-spacex-acquires-elon-musk-s-xai",
+      "source_ref": "https://www.coindesk.com/markets/2026/02/04/dogecoin-falls-7-as-risk-off-trade-hits-ethereum-tied-tokens",
       "trend_title": null,
       "trend_provider": null,
-      "created_at": "2026-02-02T22:36:29.643Z",
+      "created_at": "2026-02-03T22:42:22.038Z",
+      "approved_at": null
+    },
+    {
+      "id": "draft_ml76p0ql_1s85",
+      "theme": "crypto",
+      "content": "Crypto prices may have paused their decline with the latest government funding, but let's not kid ourselves. This isn't stability; it's a temporary fix. The underlying risks remain unaddressed.",
+      "status": "discarded",
+      "source_type": "rss",
+      "source_ref": "https://www.coindesk.com/markets/2026/02/03/crypto-pulls-out-of-free-fall-as-government-shutdown-ends",
+      "trend_title": null,
+      "trend_provider": null,
+      "created_at": "2026-02-03T22:42:27.453Z",
+      "approved_at": null
+    },
+    {
+      "id": "draft_ml76vxr2_dyac",
+      "theme": "crypto",
+      "content": "Canada's new crypto custody rules are just a band-aid on a bullet wound. They fail to tackle the real issues of trust and transparency. Are we really just delaying the next QuadrigaCX disaster?",
+      "status": "generated",
+      "source_type": "rss",
+      "source_ref": "https://www.coindesk.com/policy/2026/02/03/canada-s-investment-regulator-rolls-out-crypto-custody-rules-to-avoid-another-quadrigacx",
+      "trend_title": null,
+      "trend_provider": null,
+      "created_at": "2026-02-03T22:47:50.174Z",
+      "approved_at": null
+    },
+    {
+      "id": "draft_ml76wf4s_5sux",
+      "theme": "crypto",
+      "content": "XRP's 6% plunge is just a symptom of a deeper rot. Bitcoin's drop below support levels shows how fragile investor confidence really is. This isn't just a market correction; it's a wake-up call.",
+      "status": "generated",
+      "source_type": "rss",
+      "source_ref": "https://www.coindesk.com/markets/2026/02/04/xrp-plunges-6-as-bitcoin-drops-under-support-worsening-downtrend",
+      "trend_title": null,
+      "trend_provider": null,
+      "created_at": "2026-02-03T22:48:12.700Z",
+      "approved_at": null
+    },
+    {
+      "id": "draft_ml76wjk0_vnj9",
+      "theme": "crypto",
+      "content": "Profit-taking among early bitcoin adopters is growing. Weakening conviction in the HODL philosophy is a clear signal. This trend might just mark the beginning of the end for the current bull market.",
+      "status": "generated",
+      "source_type": "rss",
+      "source_ref": "https://www.coindesk.com/markets/2026/02/03/why-a-usd9-billion-bitcoin-sale-by-single-galaxy-client-reignites-quantum-threat-debate",
+      "trend_title": null,
+      "trend_provider": null,
+      "created_at": "2026-02-03T22:48:18.432Z",
       "approved_at": null
     }
   ],
@@ -102,59 +114,59 @@
   },
   "trends": [
     {
-      "id": "trend_ml5r11iu_2rq0lg",
+      "id": "trend_ml76b7s9_qfwh60",
       "title": "Discussions on potential Solana ETF approvals gaining traction amid regulatory speculation.",
       "description": "Discussions on potential Solana ETF approvals gaining traction amid regulatory speculation.",
       "provider": "grok",
       "sources": [
         "x"
       ],
-      "created_at": "2026-02-02T22:36:08.310Z",
+      "created_at": "2026-02-03T22:31:43.401Z",
       "label": "narrativ"
     },
     {
-      "id": "trend_ml5r11iu_d1scf7",
+      "id": "trend_ml76b7s9_7yc920",
       "title": "Buzz around Bitcoin's price volatility following recent market dips and rebounds.",
       "description": "Buzz around Bitcoin's price volatility following recent market dips and rebounds.",
       "provider": "grok",
       "sources": [
         "x"
       ],
-      "created_at": "2026-02-02T22:36:08.310Z",
+      "created_at": "2026-02-03T22:31:43.401Z",
       "label": "narrativ"
     },
     {
-      "id": "trend_ml5r11iu_hmo9yl",
+      "id": "trend_ml76b7s9_wxq4p1",
       "title": "Emerging talks on Ethereum's layer-2 scaling solutions and their adoption rates.",
       "description": "Emerging talks on Ethereum's layer-2 scaling solutions and their adoption rates.",
       "provider": "grok",
       "sources": [
         "x"
       ],
-      "created_at": "2026-02-02T22:36:08.310Z",
+      "created_at": "2026-02-03T22:31:43.401Z",
       "label": "narrativ"
     },
     {
-      "id": "trend_ml5r11iu_llry8p",
-      "title": "Debates over meme coin hype, particularly Dogecoin variants, in response to celebrity mentions.",
-      "description": "Debates over meme coin hype, particularly Dogecoin variants, in response to celebrity mentions.",
+      "id": "trend_ml76b7s9_8r1swh",
+      "title": "Debates over meme coin hype, particularly Dogecoin variants, in response to celebrity endorsements.",
+      "description": "Debates over meme coin hype, particularly Dogecoin variants, in response to celebrity endorsements.",
       "provider": "grok",
       "sources": [
         "x"
       ],
-      "created_at": "2026-02-02T22:36:08.310Z",
+      "created_at": "2026-02-03T22:31:43.401Z",
       "label": "narrativ"
     },
     {
-      "id": "trend_ml5r11iu_p27kur",
-      "title": "Conversations about DeFi protocol upgrades and their impact on yield farming.",
-      "description": "Conversations about DeFi protocol upgrades and their impact on yield farming.",
+      "id": "trend_ml76b7s9_lfkpw6",
+      "title": "Conversations about DeFi protocol vulnerabilities highlighted by recent exploit reports.",
+      "description": "Conversations about DeFi protocol vulnerabilities highlighted by recent exploit reports.",
       "provider": "grok",
       "sources": [
         "x"
       ],
-      "created_at": "2026-02-02T22:36:08.310Z",
-      "label": "sachlich"
+      "created_at": "2026-02-03T22:31:43.401Z",
+      "label": "narrativ"
     }
   ]
 }
