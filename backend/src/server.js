@@ -40,6 +40,7 @@ const {
 const { parseFeed } = require('./news');
 const { getDraftThemes, getDraftTheme } = require('./draftConfig');
 const { getApiKeyStatus, setApiKey } = require('./settings');
+const { getXMasterPromptInfo } = require('../prompts/masterPrompt');
 const {
   generateDraft,
   approveDraft,
@@ -77,6 +78,17 @@ function parsePromptText(promptText) {
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
+
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/api/debug/master-prompt', (req, res) => {
+    const { prompt, sha256, sourcePath } = getXMasterPromptInfo();
+    res.json({
+      preview: prompt.slice(0, 120),
+      sha256,
+      source: sourcePath,
+    });
+  });
+}
 
 app.get('/api/post-properties', (req, res) => {
   res.json({

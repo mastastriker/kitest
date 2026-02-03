@@ -1,12 +1,4 @@
-const fs = require('fs');
-const path = require('path');
-
-const MASTER_PROMPT_PATH = path.join(
-  __dirname,
-  '..',
-  'prompts',
-  'x_master_prompt_v2_1_1.txt'
-);
+const { getXMasterPrompt } = require('../prompts/masterPrompt');
 
 const defaultPrompts = {
   user: [
@@ -22,11 +14,7 @@ const defaultPrompts = {
 };
 
 function getMasterPrompt() {
-  const prompt = fs.readFileSync(MASTER_PROMPT_PATH, 'utf8');
-  if (!prompt) {
-    throw new Error('X master prompt is empty');
-  }
-  return prompt;
+  return getXMasterPrompt();
 }
 
 function getDefaultPrompts() {

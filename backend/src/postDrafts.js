@@ -1,7 +1,6 @@
-const fs = require('fs');
-const path = require('path');
 const OpenAI = require('openai');
 const { getDraftTheme } = require('./draftConfig');
+const { getXMasterPrompt } = require('../prompts/masterPrompt');
 const {
   addPostDraft,
   getPostDrafts,
@@ -18,29 +17,11 @@ const client = apiKey ? new OpenAI({ apiKey }) : null;
 
 const GENERATED_LIMIT = 10;
 const DAILY_LIMIT = 100;
-const MASTER_PROMPT_PATH = path.join(
-  __dirname,
-  '..',
-  'prompts',
-  'x_master_prompt_v2_1_1.txt'
-);
-let cachedMasterPrompt = null;
 
 function ensureClient() {
   if (!client) {
     throw new Error('OpenAI client is not configured');
   }
-}
-
-function loadMasterPromptFromFile() {
-  if (cachedMasterPrompt) {
-    return cachedMasterPrompt;
-  }
-  cachedMasterPrompt = fs.readFileSync(MASTER_PROMPT_PATH, 'utf8');
-  if (!cachedMasterPrompt) {
-    throw new Error('X master prompt is empty');
-  }
-  return cachedMasterPrompt;
 }
 
 function getDraftsForTheme(themeId) {
@@ -129,7 +110,7 @@ function buildIdeaPrompt(theme, analysis) {
 }
 
 function buildRewritePrompt(theme, article, idea, count) {
-  const system = loadMasterPromptFromFile();
+  const system = getXMasterPrompt();
 
   const sourceLine = article.source ? `Source: ${article.source}` : '';
   const user = [
